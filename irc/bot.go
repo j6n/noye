@@ -7,6 +7,9 @@ import (
 )
 
 type Bot struct {
+	Handle   func(msg IrcMessage)
+	Autojoin []string
+
 	conn Conn
 	stop chan struct{}
 	once sync.Once
@@ -16,6 +19,9 @@ func New(conn Conn) *Bot {
 	bot := &Bot{
 		conn: conn,
 		stop: make(chan struct{}),
+
+		Autojoin: make([]string, 0),
+		Handle:   func(msg IrcMessage) {},
 	}
 
 	return bot
@@ -35,7 +41,6 @@ func (b *Bot) Dial(addr, nick string) (err error) {
 
 func (b *Bot) Send(f string, a ...interface{}) {
 	msg := fmt.Sprintf(f, a...)
-	log.Println(">", msg)
 	b.conn.WriteLine(msg)
 }
 
@@ -64,13 +69,11 @@ func (b *Bot) readLoop() {
 		case "PING":
 			b.conn.WriteLine("PONG " + msg.Text)
 		case "001":
-			b.Send("JOIN %s", "#test")
+			for _, join := range b.Autojoin {
+				b.Send("JOIN %s", join)
+			}
 		case "PRIVMSG":
-			b.handle(msg)
+			b.Handle(msg)
 		}
 	}
-}
-
-func (b *Bot) handle(msg IrcMessage) {
-	log.Printf("%q\n", msg)
 }

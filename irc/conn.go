@@ -32,8 +32,3 @@ func (c *Connection) WriteLine(raw string) {
 func (c *Connection) ReadLine() (string, error) {
 	return c.conn.ReadLine()
 }
-
-/*
-	c.WriteLine(fmt.Sprintf("NICK %s", user))
-	c.WriteLine(fmt.Sprintf("USER %s * 0 :%s", user, user))
-*/
