@@ -20,13 +20,15 @@ func TestMatcher(t *testing.T) {
 
 			ok = cmd.Match(noye.Message{"museun", "#museun", "foo 1 3 3 7"})
 			So(ok, ShouldBeTrue)
+			So(cmd.Results.Cmds(), ShouldBeZeroValue)
+			So(cmd.Results.Params(), ShouldBeZeroValue)
+			So(cmd.Results.Lists(), ShouldResemble, []string{"1", "3", "3", "7"})
 
 			ok = cmd.Match(noye.Message{"museun", "#museun", "bar 1 0 0 4"})
 			So(ok, ShouldBeTrue)
-
 			So(cmd.Results.Cmds(), ShouldBeZeroValue)
 			So(cmd.Results.Params(), ShouldBeZeroValue)
-			So(cmd.Results.Lists(), ShouldResemble, []string{"1", "3", "3", "7", "1", "0", "0", "4"})
+			So(cmd.Results.Lists(), ShouldResemble, []string{"1", "0", "0", "4"})
 		})
 
 		Convey("Match command with some params", func() {
@@ -37,16 +39,15 @@ func TestMatcher(t *testing.T) {
 
 			ok = cmd.Match(noye.Message{"museun", "#museun", "foo 7 z"})
 			So(ok, ShouldBeTrue)
+			So(cmd.Results.Cmds(), ShouldBeZeroValue)
+			So(cmd.Results.Params(), ShouldResemble, []string{"7", "z"})
+			So(cmd.Results.Lists(), ShouldBeZeroValue)
 
 			ok = cmd.Match(noye.Message{"museun", "#museun", "foo 9 9"})
 			So(ok, ShouldBeFalse)
 
 			ok = cmd.Match(noye.Message{"museun", "#museun", "bar 1 0 0 4"})
 			So(ok, ShouldBeFalse)
-
-			So(cmd.Results.Cmds(), ShouldBeZeroValue)
-			So(cmd.Results.Params(), ShouldResemble, []string{"7", "z"})
-			So(cmd.Results.Lists(), ShouldBeZeroValue)
 		})
 
 		Convey("Match nick prefix and command", func() {
@@ -77,6 +78,8 @@ func TestMatcher(t *testing.T) {
 
 			ok = cmd.Match(noye.Message{"museun", "#museun", "noye foo 7 bar"})
 			So(ok, ShouldBeTrue)
+			So(cmd.Results.Cmds(), ShouldResemble, []string{"foo"})
+			So(cmd.Results.Params(), ShouldResemble, []string{"7"})
 
 			ok = cmd.Match(noye.Message{"museun", "#museun", "foo 9 9"})
 			So(ok, ShouldBeFalse)
@@ -84,8 +87,8 @@ func TestMatcher(t *testing.T) {
 			ok = cmd.Match(noye.Message{"museun", "#museun", "noye foo 9 baz"})
 			So(ok, ShouldBeTrue)
 
-			So(cmd.Results.Cmds(), ShouldResemble, []string{"foo", "foo"})
-			So(cmd.Results.Params(), ShouldResemble, []string{"7", "9"})
+			So(cmd.Results.Cmds(), ShouldResemble, []string{"foo"})
+			So(cmd.Results.Params(), ShouldResemble, []string{"9"})
 			So(cmd.Results.Lists(), ShouldBeZeroValue)
 		})
 	})

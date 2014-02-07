@@ -73,6 +73,9 @@ func (m *Matcher) Valid() (bool, error) {
 }
 
 func (m *Matcher) Match(msg noye.Message) (ok bool) {
+	// reset results
+	m.Results = Results{make(map[string][]string)}
+
 	params := strings.Fields(msg.Text)
 	index := 0
 
