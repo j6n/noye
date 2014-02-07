@@ -2,10 +2,10 @@ package naver
 
 import (
 	"testing"
+	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/j6n/noye/mock"
 	"github.com/j6n/noye/noye"
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestNaver(t *testing.T) {
@@ -39,7 +39,7 @@ func TestNaver(t *testing.T) {
 				close(res)
 			})
 
-			FocusConvey("With multiple urls", func() {
+			Convey("With multiple urls", func() {
 				bot, naver, res := mock.NewMockBot(), New(), make(chan string)
 				bot.PrivmsgFn = func(target, msg string) { res <- msg }
 

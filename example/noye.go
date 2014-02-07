@@ -5,14 +5,17 @@ import (
 
 	"github.com/j6n/noye/irc"
 	"github.com/j6n/noye/plugin/admin"
+	"github.com/j6n/noye/plugin/naver"
 )
 
 func main() {
 	bot := irc.New(&irc.Connection{})
-	bot.Autojoin = []string{"#test"}
-	bot.AddPlugin(admin.New())
+	bot.Autojoin = []string{"#museun", "#nanashin"}
 
-	if err := bot.Dial("localhost:6667", "noye", "museun"); err != nil {
+	bot.AddPlugin(admin.New())
+	bot.AddPlugin(naver.New())
+
+	if err := bot.Dial("irc.quakenet.org:6667", "noye", "museun"); err != nil {
 		log.Fatalln(err)
 	}
 

@@ -2,6 +2,7 @@ package naver
 
 import (
 	"log"
+
 	"github.com/j6n/noye-naver"
 
 	"github.com/j6n/noye/dsl"
@@ -21,25 +22,16 @@ func New() *Naver {
 
 func (n *Naver) process() {
 	music := dsl.Nick("noye").Command("naver").Param("music").List(`(http://music.naver.com/.*?\S*)+`)
-	// tvcast := dsl.Nick("noye").Command("naver").Param("tvcast").List()
 
 	if ok, err := music.Valid(); !ok {
 		log.Println("err starting naver:", err)
 		return
 	}
 
-	// if ok, err := tvcast.Valid(); !ok {
-	// 	log.Println("err starting naver:", err)
-	// 	return
-	// }
-
 	for msg := range n.Messages {
 		switch {
 		case music.Match(msg):
 			n.handleMusic(msg, &music.Results)
-
-			// case tvcast.Match(msg):
-			// 	ctx.Part(part.Results.Params()[0])
 		}
 	}
 }
