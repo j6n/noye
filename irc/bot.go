@@ -3,14 +3,15 @@ package irc
 import (
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 
 	"github.com/j6n/noye/noye"
 )
 
 type Bot struct {
-	Handle   func(msg Message)
 	Autojoin []string
+	plugins  []noye.Plugin
 
 	conn noye.Conn
 	stop chan struct{}
@@ -23,7 +24,6 @@ func New(conn noye.Conn) *Bot {
 		stop: make(chan struct{}),
 
 		Autojoin: make([]string, 0),
-		Handle:   func(msg Message) {},
 	}
 
 	return bot
@@ -69,6 +69,11 @@ func (b *Bot) Wait() <-chan struct{} {
 	return b.stop
 }
 
+func (b *Bot) AddPlugin(p noye.Plugin) {
+	p.Hook(b)
+	b.plugins = append(b.plugins, p)
+}
+
 func (b *Bot) readLoop() {
 	defer func() { b.Close() }()
 
@@ -87,7 +92,27 @@ func (b *Bot) readLoop() {
 				b.Send("JOIN %s", join)
 			}
 		case "PRIVMSG":
-			b.Handle(msg)
+			b.handle(msg)
 		}
 	}
+}
+
+func (b *Bot) handle(msg Message) {
+	out := noye.Message{}
+
+	out.From = strings.Split(msg.Source, "!")[0]
+	out.Text = msg.Text
+
+	switch msg.Args[0][0] {
+	case '#', '&':
+		out.Target = msg.Args[0]
+	default:
+		out.Target = out.From
+	}
+
+	go func(out noye.Message) {
+		for _, p := range b.plugins {
+			p.Listen() <- out
+		}
+	}(out)
 }

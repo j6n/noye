@@ -8,7 +8,7 @@ import (
 )
 
 type Admin struct {
-	base *plugin.BasePlugin
+	*plugin.BasePlugin
 }
 
 func New() *Admin {
@@ -36,10 +36,10 @@ func (a *Admin) process() {
 	}
 
 	// lazy, copy the ref to the bot
-	ctx := a.base.Bot
+	ctx := a.BasePlugin.Bot
 
 	// when we get a message
-	for msg := range a.base.Messages {
+	for msg := range a.BasePlugin.Messages {
 		switch {
 		// see if its a join command
 		case join.Match(msg):

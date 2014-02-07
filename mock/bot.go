@@ -1,5 +1,7 @@
 package mock
 
+import "github.com/j6n/noye/noye"
+
 type MockBot struct {
 	SendFn    func(string, ...interface{})
 	PrivmsgFn func(string, string)
@@ -40,4 +42,7 @@ func (m *MockBot) Part(target string) {
 
 func (m *MockBot) Wait() <-chan struct{} {
 	return nil
+}
+
+func (m *MockBot) AddPlugin(p noye.Plugin) {
 }
