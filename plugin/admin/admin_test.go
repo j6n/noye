@@ -21,8 +21,8 @@ func TestAdmin(t *testing.T) {
 			bot, admin, res := mock.NewMockBot(), New(), make(chan string)
 			bot.JoinFn = func(target string) { res <- target; close(res) }
 
-			admin.base.Hook(bot)
-			admin.base.Messages <- noye.Message{"museun", "#museun", "noye: join #foobar"}
+			admin.Hook(bot)
+			admin.Messages <- noye.Message{"museun", "#museun", "noye: join #foobar"}
 
 			So(<-res, ShouldEqual, "#foobar")
 		})
@@ -31,8 +31,8 @@ func TestAdmin(t *testing.T) {
 			bot, admin, res := mock.NewMockBot(), New(), make(chan string)
 			bot.PartFn = func(target string) { res <- target; close(res) }
 
-			admin.base.Hook(bot)
-			admin.base.Messages <- noye.Message{"museun", "#museun", "noye: part #foobar"}
+			admin.Hook(bot)
+			admin.Messages <- noye.Message{"museun", "#museun", "noye: part #foobar"}
 
 			So(<-res, ShouldEqual, "#foobar")
 		})

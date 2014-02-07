@@ -1,6 +1,10 @@
 package plugin
 
-import "github.com/j6n/noye/noye"
+import (
+	"fmt"
+
+	"github.com/j6n/noye/noye"
+)
 
 type BasePlugin struct {
 	Bot      noye.Bot
@@ -42,4 +46,12 @@ func (b *BasePlugin) SetStatus(ch string, ok bool) {
 
 func (b *BasePlugin) Hook(bot noye.Bot) {
 	b.Bot = bot
+}
+
+func (b *BasePlugin) Reply(msg noye.Message, f string, a ...interface{}) {
+	b.Bot.Privmsg(msg.Target, fmt.Sprintf(f, a...))
+}
+
+func (b *BasePlugin) Error(msg noye.Message, text string, err error) {
+	b.Reply(msg, "error with %s (%s)", text, err)
 }

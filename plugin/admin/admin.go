@@ -35,21 +35,18 @@ func (a *Admin) process() {
 		return
 	}
 
-	// lazy, copy the ref to the bot
-	ctx := a.BasePlugin.Bot
-
 	// when we get a message
-	for msg := range a.BasePlugin.Messages {
+	for msg := range a.Messages {
 		switch {
 		// see if its a join command
 		case join.Match(msg):
 			// if so join the channel
-			ctx.Join(join.Results.Params()[0])
+			a.Bot.Join(join.Results.Params()[0])
 
 		// see if its a part command
 		case part.Match(msg):
 			// if so leave the channel
-			ctx.Part(part.Results.Params()[0])
+			a.Bot.Part(part.Results.Params()[0])
 		}
 	}
 }
