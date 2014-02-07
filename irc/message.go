@@ -2,15 +2,15 @@ package irc
 
 import "strings"
 
-type IrcMessage struct {
+type Message struct {
 	Source  string
 	Command string
 	Args    []string
 	Text    string
 }
 
-func parse(raw string) IrcMessage {
-	msg := IrcMessage{}
+func parse(raw string) Message {
+	msg := Message{}
 	// :source command [args] :message
 	if raw[0] == ':' {
 		if i := strings.Index(raw, " "); i >= -1 {

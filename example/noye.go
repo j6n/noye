@@ -15,7 +15,7 @@ func main() {
 
 	bot := irc.New(conn)
 	bot.Autojoin = []string{"#museun", "#nanashin"}
-	bot.Handle = func(msg irc.IrcMessage) {
+	bot.Handle = func(msg irc.Message) {
 		if matches := re.FindAllStringSubmatch(msg.Text, -1); len(matches) > 0 && len(matches[0]) > 0 {
 			for _, match := range matches[0][1:] {
 				ids, err := naver.FindIDs(match)
@@ -36,7 +36,7 @@ func main() {
 		}
 	}
 
-	if err := bot.Dial("irc.quakenet.org:6667", "noye"); err != nil {
+	if err := bot.Dial("irc.quakenet.org:6667", "noye", "museun"); err != nil {
 		log.Fatalln(err)
 	}
 

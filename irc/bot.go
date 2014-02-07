@@ -4,24 +4,26 @@ import (
 	"fmt"
 	"log"
 	"sync"
+
+	"github.com/j6n/noye/noye"
 )
 
 type Bot struct {
-	Handle   func(msg IrcMessage)
+	Handle   func(msg Message)
 	Autojoin []string
 
-	conn Conn
+	conn noye.Conn
 	stop chan struct{}
 	once sync.Once
 }
 
-func New(conn Conn) *Bot {
+func New(conn noye.Conn) *Bot {
 	bot := &Bot{
 		conn: conn,
 		stop: make(chan struct{}),
 
 		Autojoin: make([]string, 0),
-		Handle:   func(msg IrcMessage) {},
+		Handle:   func(msg Message) {},
 	}
 
 	return bot
@@ -33,7 +35,7 @@ func (b *Bot) Dial(addr, nick, user string) (err error) {
 	}
 
 	b.Send("NICK %s", nick)
-	b.Send("USER %s * 0 :%s", nick, user)
+	b.Send("USER %s * 0 :%s", user, "noye in go!")
 
 	go b.readLoop()
 	return
