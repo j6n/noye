@@ -27,13 +27,13 @@ func New(conn Conn) *Bot {
 	return bot
 }
 
-func (b *Bot) Dial(addr, nick string) (err error) {
+func (b *Bot) Dial(addr, nick, user string) (err error) {
 	if err = b.conn.Dial(addr, nick); err != nil {
 		return
 	}
 
 	b.Send("NICK %s", nick)
-	b.Send("USER %s * 0 :%s", nick, nick)
+	b.Send("USER %s * 0 :%s", nick, user)
 
 	go b.readLoop()
 	return
@@ -42,6 +42,18 @@ func (b *Bot) Dial(addr, nick string) (err error) {
 func (b *Bot) Send(f string, a ...interface{}) {
 	msg := fmt.Sprintf(f, a...)
 	b.conn.WriteLine(msg)
+}
+
+func (b *Bot) Privmsg(target, msg string) {
+	b.Send("PRIVMSG %s :%s", target, msg)
+}
+
+func (b *Bot) Join(target string) {
+	b.Send("JOIN %s", target)
+}
+
+func (b *Bot) Part(target string) {
+	b.Send("PART %s", target)
 }
 
 func (b *Bot) Close() {

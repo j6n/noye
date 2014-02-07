@@ -2,13 +2,6 @@ package irc
 
 import "net/textproto"
 
-type Conn interface {
-	Dial(addr, user string) error
-	Close()
-	WriteLine(raw string)
-	ReadLine() (string, error)
-}
-
 type Connection struct{ conn *textproto.Conn }
 
 func (c *Connection) Dial(addr, user string) (err error) {
