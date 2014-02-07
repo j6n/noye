@@ -94,6 +94,11 @@ func (m *Matcher) Match(msg noye.Message) (ok bool) {
 		index++
 	}
 
+	// if we've gone too far
+	if index >= len(params) {
+		return false
+	}
+
 	for _, cmd := range m.cmds {
 		if !cmd.MatchString(params[index]) {
 			return false
