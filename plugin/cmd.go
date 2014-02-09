@@ -18,6 +18,9 @@ type Command struct {
 }
 
 func (c *Command) Match(msg noye.Message) bool {
+	// reset the results
+	c.results = make([]string, 0)
+
 	// split text in parts so we can drop nick/cmd if needed
 	parts := strings.Fields(msg.Text)
 
