@@ -12,11 +12,6 @@ func TestNaver(t *testing.T) {
 	t.Parallel()
 
 	Convey("Naver plugin should", t, func() {
-		Convey("Be able to be created", func() {
-			naver := New()
-			So(naver, ShouldNotBeNil)
-		})
-
 		Convey("Handle a music command", func() {
 			Convey("With one url", func() {
 				bot, naver, res := mock.NewMockBot(), New(), make(chan string)

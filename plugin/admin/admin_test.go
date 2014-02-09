@@ -2,21 +2,16 @@ package admin
 
 import (
 	"testing"
+	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/j6n/noye/mock"
 	"github.com/j6n/noye/noye"
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestAdmin(t *testing.T) {
 	t.Parallel()
 
 	Convey("Admin plugin should", t, func() {
-		Convey("Be able to be created", func() {
-			admin := New()
-			So(admin, ShouldNotBeNil)
-		})
-
 		Convey("Handle a join command", func() {
 			bot, admin, res := mock.NewMockBot(), New(), make(chan string)
 			bot.JoinFn = func(target string) { res <- target; close(res) }

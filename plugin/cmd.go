@@ -17,6 +17,14 @@ type Command struct {
 	results []string
 }
 
+func Hear(cmd string, matcher Matcher) Command {
+	return Command{Command: cmd, Matcher: matcher}
+}
+
+func Respond(cmd string, matcher Matcher) Command {
+	return Command{Command: cmd, Respond: true, Matcher: matcher}
+}
+
 func (c *Command) Match(msg noye.Message) bool {
 	// reset the results
 	c.results = make([]string, 0)

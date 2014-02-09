@@ -18,26 +18,17 @@ func New() *Admin {
 }
 
 func (a *Admin) process() {
-	// create our commands
-	join := plugin.Command{
-		Respond: true,
-		Each:    true,
-		Command: "join",
-		Matcher: plugin.RegexMatcher(
-			regexp.MustCompile("($.*?)$"),
-			true,
-		),
-	}
+	// create a matcher for our commands
+	chanMatcher := plugin.RegexMatcher(
+		regexp.MustCompile("(#.*?)$"),
+		true,
+	)
 
-	part := plugin.Command{
-		Respond: true,
-		Each:    true,
-		Command: "part",
-		Matcher: plugin.RegexMatcher(
-			regexp.MustCompile("($.*?)$"),
-			true,
-		),
-	}
+	// create our commands
+	join := plugin.Respond("join", chanMatcher)
+	join.Each = true
+	part := plugin.Respond("part", chanMatcher)
+	part.Each = true
 
 	// when we get a message
 	for msg := range a.Listen() {

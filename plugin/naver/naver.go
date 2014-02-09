@@ -19,15 +19,11 @@ func New() *Naver {
 }
 
 func (n *Naver) process() {
-	music := plugin.Command{
-		Respond: true,
-		Command: "naver",
-		Each:    true,
-		Matcher: plugin.RegexMatcher(
-			regexp.MustCompile(`(http://music.naver.com/.*?\S*)+`),
-			true,
-		),
-	}
+	music := plugin.Respond("naver", plugin.RegexMatcher(
+		regexp.MustCompile(`(http://music.naver.com/.*?\S*)+`),
+		true,
+	))
+	music.Each = true
 
 	for msg := range n.Listen() {
 		switch {
