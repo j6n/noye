@@ -19,8 +19,6 @@ func New() *Naver {
 }
 
 func (n *Naver) process() {
-	//music := dsl.Nick("noye").Command("naver").Param("music").List(`(http://music.naver.com/.*?\S*)+`)
-
 	music := plugin.Command{
 		Respond: true,
 		Command: "naver",

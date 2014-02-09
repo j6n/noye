@@ -1,6 +1,10 @@
 package admin
 
-import "github.com/j6n/noye/plugin"
+import (
+	"regexp"
+
+	"github.com/j6n/noye/plugin"
+)
 
 type Admin struct {
 	*plugin.BasePlugin
@@ -14,36 +18,43 @@ func New() *Admin {
 }
 
 func (a *Admin) process() {
-	/*
-		// create our commands
-		join := dsl.Nick("noye").Command("join").Param("(#.*?)$")
-		part := dsl.Nick("noye").Command("part").Param("(#.*?)$")
+	// create our commands
+	join := plugin.Command{
+		Respond: true,
+		Each:    true,
+		Command: "join",
+		Matcher: plugin.RegexMatcher(
+			regexp.MustCompile("($.*?)$"),
+			true,
+		),
+	}
 
-		// check to see if our join command is valid
-		if ok, err := join.Valid(); !ok {
-			log.Println("err starting admin:", err)
-			return
-		}
+	part := plugin.Command{
+		Respond: true,
+		Each:    true,
+		Command: "part",
+		Matcher: plugin.RegexMatcher(
+			regexp.MustCompile("($.*?)$"),
+			true,
+		),
+	}
 
-		// check to see if our part command is valid
-		if ok, err := part.Valid(); !ok {
-			log.Println("err starting admin:", err)
-			return
-		}
+	// when we get a message
+	for msg := range a.Listen() {
+		switch {
+		// see if its a join command
+		case join.Match(msg):
+			// if so join the channels
+			for _, result := range join.Results() {
+				a.Bot.Join(result)
+			}
 
-		// when we get a message
-		for msg := range a.Messages {
-			switch {
-			// see if its a join command
-			case join.Match(msg):
-				// if so join the channel
-				a.Bot.Join(join.Results.Params()[0])
-
-			// see if its a part command
-			case part.Match(msg):
-				// if so leave the channel
-				a.Bot.Part(part.Results.Params()[0])
+		// see if its a part command
+		case part.Match(msg):
+			// if so leave the channel
+			for _, result := range part.Results() {
+				a.Bot.Part(result)
 			}
 		}
-	*/
+	}
 }

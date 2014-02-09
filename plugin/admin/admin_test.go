@@ -1,6 +1,5 @@
 package admin
 
-/*
 import (
 	"testing"
 
@@ -23,9 +22,21 @@ func TestAdmin(t *testing.T) {
 			bot.JoinFn = func(target string) { res <- target; close(res) }
 
 			admin.Hook(bot)
-			admin.Messages <- noye.Message{"museun", "#museun", "noye: join #foobar"}
+			admin.Listen() <- noye.Message{"museun", "#museun", "noye: join #foobar"}
 
 			So(<-res, ShouldEqual, "#foobar")
+		})
+
+		Convey("Handle a join command, multiple channels", func() {
+			bot, admin, res := mock.NewMockBot(), New(), make(chan string)
+			bot.JoinFn = func(target string) { res <- target }
+
+			admin.Hook(bot)
+			admin.Listen() <- noye.Message{"museun", "#museun", "noye: join #foobar #testing"}
+
+			So(<-res, ShouldEqual, "#foobar")
+			So(<-res, ShouldEqual, "#testing")
+			close(res)
 		})
 
 		Convey("Handle a part command", func() {
@@ -33,10 +44,21 @@ func TestAdmin(t *testing.T) {
 			bot.PartFn = func(target string) { res <- target; close(res) }
 
 			admin.Hook(bot)
-			admin.Messages <- noye.Message{"museun", "#museun", "noye: part #foobar"}
+			admin.Listen() <- noye.Message{"museun", "#museun", "noye: part #foobar"}
 
 			So(<-res, ShouldEqual, "#foobar")
 		})
+
+		Convey("Handle a part command, multiple channels", func() {
+			bot, admin, res := mock.NewMockBot(), New(), make(chan string)
+			bot.PartFn = func(target string) { res <- target }
+
+			admin.Hook(bot)
+			admin.Listen() <- noye.Message{"museun", "#museun", "noye: part #foobar #testing"}
+
+			So(<-res, ShouldEqual, "#foobar")
+			So(<-res, ShouldEqual, "#testing")
+			close(res)
+		})
 	})
 }
-*/

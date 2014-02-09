@@ -7,7 +7,7 @@ import (
 )
 
 type BasePlugin struct {
-	bot      noye.Bot
+	Bot      noye.Bot
 	input    chan noye.Message
 	Disabled map[string]bool
 }
@@ -33,11 +33,11 @@ func (b *BasePlugin) SetStatus(ch string, status bool) {
 }
 
 func (b *BasePlugin) Hook(bot noye.Bot) {
-	b.bot = bot
+	b.Bot = bot
 }
 
 func (b *BasePlugin) Reply(msg noye.Message, f string, a ...interface{}) {
-	b.bot.Privmsg(msg.Target, fmt.Sprintf(f, a...))
+	b.Bot.Privmsg(msg.Target, fmt.Sprintf(f, a...))
 }
 
 func (b *BasePlugin) Error(msg noye.Message, text string, err error) {
