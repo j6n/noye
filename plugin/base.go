@@ -13,18 +13,21 @@ type BasePlugin struct {
 }
 
 func New() *BasePlugin {
-	return &BasePlugin{nil, make(chan noye.Message), make(map[string]bool)}
+	return &BasePlugin{
+		Messages: make(chan noye.Message),
+		Disabled: make(map[string]bool),
+	}
 }
 
 func (b *BasePlugin) Listen() chan noye.Message {
 	return b.Messages
 }
 
-func (b *BasePlugin) Status(ch string) bool {
+func (b *BasePlugin) Status(ch string) (ok bool) {
 	if ch == "*" {
 		for _, ok := range b.Disabled {
 			if !ok {
-				return false
+				return
 			}
 		}
 	}
@@ -33,15 +36,15 @@ func (b *BasePlugin) Status(ch string) bool {
 	return s && ok
 }
 
-func (b *BasePlugin) SetStatus(ch string, ok bool) {
+func (b *BasePlugin) SetStatus(ch string, status bool) {
 	if ch == "*" {
 		for k, _ := range b.Disabled {
-			b.Disabled[k] = ok
+			b.Disabled[k] = status
 		}
 		return
 	}
 
-	b.Disabled[ch] = ok
+	b.Disabled[ch] = status
 }
 
 func (b *BasePlugin) Hook(bot noye.Bot) {
