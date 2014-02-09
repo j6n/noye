@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 	. "github.com/smartystreets/goconvey/convey"
@@ -58,7 +59,29 @@ func TestCommand(t *testing.T) {
 			}}
 
 			So(match(cmd, "foo test"), ShouldBeTrue)
-			So(cmd.Results()[0], ShouldEqual, "bar")
+
+			res := cmd.Results()
+			So(res, ShouldNotBeNil)
+			So(len(res), ShouldEqual, 1)
+			So(res[0], ShouldEqual, "bar")
+		})
+
+		Convey("should match multiple with results", func() {
+			cmd := &Command{Command: "foo", Each: true, Matcher: func(s string) (bool, string) {
+				ok, _ := regexp.MatchString("[0-9]", s)
+				if ok {
+					return ok, s
+				}
+
+				return false, ""
+			}}
+
+			So(match(cmd, "foo 1 0 0 4"), ShouldBeTrue)
+
+			res := cmd.Results()
+			So(res, ShouldNotBeNil)
+			So(len(res), ShouldEqual, 4)
+			So(res, ShouldResemble, []string{"1", "0", "0", "4"})
 		})
 	})
 }
