@@ -60,20 +60,19 @@ func (c *Command) Match(msg noye.Message) bool {
 
 	// if we're using the matcher against each part
 	if c.Each {
+		var success bool
 		// ...then match each remaining part
 		for _, part := range parts[index:] {
-			ok, s := c.Matcher(part)
-			if ok && s != "" {
-				c.results = append(c.results, s)
-			}
-
-			if !ok {
-				return false
+			if ok, s := c.Matcher(part); ok {
+				success = true
+				if s != "" {
+					c.results = append(c.results, s)
+				}
 			}
 		}
 
 		// nothing else to do, we've succeeded
-		return true
+		return success
 	}
 
 	// match against the parts rejoined as a string
