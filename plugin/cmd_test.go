@@ -17,35 +17,48 @@ func TestCommand(t *testing.T) {
 
 	Convey("Command", t, func() {
 		Convey("should match a simple command", func() {
-			cmd := Command{Command: "hello"}
-			So(match(&cmd, "hello"), ShouldBeTrue)
-			So(match(&cmd, "something"), ShouldBeFalse)
+			cmd := &Command{Command: "hello"}
+			So(match(cmd, "hello"), ShouldBeTrue)
+			So(match(cmd, "something"), ShouldBeFalse)
 		})
 
 		Convey("should match a simple respond", func() {
-			cmd := Command{Respond: true, Command: "something"}
-			So(match(&cmd, "noye: something"), ShouldBeTrue)
-			So(match(&cmd, "noye: do something"), ShouldBeFalse)
+			cmd := &Command{Respond: true, Command: "something"}
+			So(match(cmd, "noye: something"), ShouldBeTrue)
+			So(match(cmd, "noye: do something"), ShouldBeFalse)
 		})
 
 		Convey("should match multiple parts", func() {
-			cmd := Command{Command: "foo", Each: true,
-				Matcher: func(s string) bool { return len(s) == 3 },
+			cmd := &Command{Command: "foo", Each: true,
+				Matcher: func(s string) (bool, string) { return len(s) == 3, "" },
 			}
-			So(match(&cmd, "foo bar baz"), ShouldBeTrue)
-			So(match(&cmd, "foo foo foobar"), ShouldBeFalse)
-			So(match(&cmd, "noye: test this out"), ShouldBeFalse)
+			So(match(cmd, "foo bar baz"), ShouldBeTrue)
+			So(match(cmd, "foo foo foobar"), ShouldBeFalse)
+			So(match(cmd, "noye: test this out"), ShouldBeFalse)
 		})
 
 		Convey("should match respond with mulitple parts", func() {
-			cmd := Command{Command: "foo", Each: true, Respond: true,
-				Matcher: func(s string) bool { return len(s) == 3 },
+			cmd := &Command{Command: "foo", Each: true, Respond: true,
+				Matcher: func(s string) (bool, string) { return len(s) == 3, "" },
 			}
-			So(match(&cmd, "noye: foo bar baz"), ShouldBeTrue)
-			So(match(&cmd, "noye: foo bar asdf"), ShouldBeFalse)
-			So(match(&cmd, "foo bar asdf"), ShouldBeFalse)
-			So(match(&cmd, "foo bar baz"), ShouldBeFalse)
-			So(match(&cmd, "noye: bar foo"), ShouldBeFalse)
+			So(match(cmd, "noye: foo bar baz"), ShouldBeTrue)
+			So(match(cmd, "noye: foo bar asdf"), ShouldBeFalse)
+			So(match(cmd, "foo bar asdf"), ShouldBeFalse)
+			So(match(cmd, "foo bar baz"), ShouldBeFalse)
+			So(match(cmd, "noye: bar foo"), ShouldBeFalse)
+		})
+
+		Convey("should match simple with a result", func() {
+			cmd := &Command{Command: "foo", Matcher: func(s string) (bool, string) {
+				t.Log(">", s)
+				if s == "test" {
+					return true, "bar"
+				}
+				return false, ""
+			}}
+
+			So(match(cmd, "foo test"), ShouldBeTrue)
+			So(cmd.Results()[0], ShouldEqual, "bar")
 		})
 	})
 }
