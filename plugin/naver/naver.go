@@ -1,14 +1,6 @@
 package naver
 
-import (
-	"log"
-
-	"github.com/j6n/noye-naver"
-
-	"github.com/j6n/noye/dsl"
-	"github.com/j6n/noye/noye"
-	"github.com/j6n/noye/plugin"
-)
+import "github.com/j6n/noye/plugin"
 
 type Naver struct {
 	*plugin.BasePlugin
@@ -21,21 +13,22 @@ func New() *Naver {
 }
 
 func (n *Naver) process() {
-	music := dsl.Nick("noye").Command("naver").Param("music").List(`(http://music.naver.com/.*?\S*)+`)
+	// music := dsl.Nick("noye").Command("naver").Param("music").List(`(http://music.naver.com/.*?\S*)+`)
 
-	if ok, err := music.Valid(); !ok {
-		log.Println("err starting naver:", err)
-		return
-	}
+	// if ok, err := music.Valid(); !ok {
+	// 	log.Println("err starting naver:", err)
+	// 	return
+	// }
 
-	for msg := range n.Messages {
-		switch {
-		case music.Match(msg):
-			n.handleMusic(msg, &music.Results)
-		}
-	}
+	// for msg := range n.Listen() {
+	// 	switch {
+	// 	case music.Match(msg):
+	// 		n.handleMusic(msg, &music.Results)
+	// 	}
+	// }
 }
 
+/*
 func (n *Naver) handleMusic(msg noye.Message, match *dsl.Results) {
 	for _, url := range match.Lists() {
 		ids, err := naver.FindIDs(url)
@@ -56,3 +49,4 @@ func (n *Naver) handleMusic(msg noye.Message, match *dsl.Results) {
 		}
 	}
 }
+*/
