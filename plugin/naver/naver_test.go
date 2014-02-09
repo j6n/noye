@@ -1,6 +1,5 @@
 package naver
 
-/*
 import (
 	"testing"
 	. "github.com/smartystreets/goconvey/convey"
@@ -24,7 +23,7 @@ func TestNaver(t *testing.T) {
 				bot.PrivmsgFn = func(target, msg string) { res <- msg }
 
 				naver.Hook(bot)
-				naver.Messages <- noye.Message{
+				naver.Listen() <- noye.Message{
 					"museun",
 					"#museun",
 					"noye: naver music http://music.naver.com/promotion/specialContent.nhn?articleId=4569&page=2",
@@ -45,7 +44,7 @@ func TestNaver(t *testing.T) {
 				bot.PrivmsgFn = func(target, msg string) { res <- msg }
 
 				naver.Hook(bot)
-				naver.Messages <- noye.Message{
+				naver.Listen() <- noye.Message{
 					"museun",
 					"#museun",
 					"noye: naver music http://music.naver.com/promotion/specialContent.nhn?articleId=4569&page=2 " +
@@ -69,4 +68,3 @@ func TestNaver(t *testing.T) {
 		})
 	})
 }
-*/

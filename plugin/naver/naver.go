@@ -1,6 +1,12 @@
 package naver
 
-import "github.com/j6n/noye/plugin"
+import (
+	"regexp"
+
+	"github.com/j6n/noye-naver"
+	"github.com/j6n/noye/noye"
+	"github.com/j6n/noye/plugin"
+)
 
 type Naver struct {
 	*plugin.BasePlugin
@@ -13,24 +19,28 @@ func New() *Naver {
 }
 
 func (n *Naver) process() {
-	// music := dsl.Nick("noye").Command("naver").Param("music").List(`(http://music.naver.com/.*?\S*)+`)
+	//music := dsl.Nick("noye").Command("naver").Param("music").List(`(http://music.naver.com/.*?\S*)+`)
 
-	// if ok, err := music.Valid(); !ok {
-	// 	log.Println("err starting naver:", err)
-	// 	return
-	// }
+	music := plugin.Command{
+		Respond: true,
+		Command: "naver",
+		Each:    true,
+		Matcher: plugin.RegexMatcher(
+			regexp.MustCompile(`(http://music.naver.com/.*?\S*)+`),
+			true,
+		),
+	}
 
-	// for msg := range n.Listen() {
-	// 	switch {
-	// 	case music.Match(msg):
-	// 		n.handleMusic(msg, &music.Results)
-	// 	}
-	// }
+	for msg := range n.Listen() {
+		switch {
+		case music.Match(msg):
+			n.handleMusic(msg, music.Results())
+		}
+	}
 }
 
-/*
-func (n *Naver) handleMusic(msg noye.Message, match *dsl.Results) {
-	for _, url := range match.Lists() {
+func (n *Naver) handleMusic(msg noye.Message, match []string) {
+	for _, url := range match {
 		ids, err := naver.FindIDs(url)
 		if err != nil {
 			n.Error(msg, "music/findIDs", err)
@@ -49,4 +59,3 @@ func (n *Naver) handleMusic(msg noye.Message, match *dsl.Results) {
 		}
 	}
 }
-*/
