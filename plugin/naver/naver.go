@@ -3,7 +3,7 @@ package naver
 import (
 	"regexp"
 
-	"github.com/j6n/noye-naver"
+	"github.com/j6n/naver/music"
 	"github.com/j6n/noye/noye"
 	"github.com/j6n/noye/plugin"
 )
@@ -35,14 +35,14 @@ func (n *Naver) process() {
 
 func (n *Naver) handleMusic(msg noye.Message, match []string) {
 	for _, url := range match {
-		ids, err := naver.FindIDs(url)
+		ids, err := music.FindIDs(url)
 		if err != nil {
 			n.Error(msg, "music/findIDs", err)
 			continue
 		}
 
 		for _, id := range ids {
-			vid, err := naver.GetVideo(id)
+			vid, err := music.GetVideo(id)
 			if err != nil {
 				n.Error(msg, "music/findIDs", err)
 				continue
