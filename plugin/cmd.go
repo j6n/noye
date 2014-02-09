@@ -11,6 +11,7 @@ type Command struct {
 	Respond bool
 	Command string
 	Each    bool
+	Strict  bool
 	Matcher func(string) (bool, string)
 
 	results []string
@@ -60,14 +61,15 @@ func (c *Command) Match(msg noye.Message) bool {
 
 	// if we're using the matcher against each part
 	if c.Each {
-		var success bool
+		success := true
 		// ...then match each remaining part
 		for _, part := range parts[index:] {
 			if ok, s := c.Matcher(part); ok {
-				success = true
 				if s != "" {
 					c.results = append(c.results, s)
 				}
+			} else if c.Strict {
+				success = false
 			}
 		}
 

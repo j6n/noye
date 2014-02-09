@@ -38,12 +38,32 @@ func TestCommand(t *testing.T) {
 			So(match(cmd, "noye: test this out"), ShouldBeFalse)
 		})
 
+		Convey("match multiple parts, strict", func() {
+			cmd := &Command{Command: "foo", Each: true, Strict: true,
+				Matcher: func(s string) (bool, string) { return len(s) == 3, "" },
+			}
+			So(match(cmd, "foo bar baz"), ShouldBeTrue)
+			So(match(cmd, "foo foo true"), ShouldBeFalse) // strict
+			So(match(cmd, "noye: test this out"), ShouldBeFalse)
+		})
+
 		Convey("match respond with mulitple parts", func() {
 			cmd := &Command{Command: "foo", Each: true, Respond: true,
 				Matcher: func(s string) (bool, string) { return len(s) == 3, "" },
 			}
 			So(match(cmd, "noye: foo bar baz"), ShouldBeTrue)
 			So(match(cmd, "noye: foo bar asdf"), ShouldBeTrue) // non strict
+			So(match(cmd, "foo bar asdf"), ShouldBeFalse)
+			So(match(cmd, "foo bar baz"), ShouldBeFalse)
+			So(match(cmd, "noye: bar foo"), ShouldBeFalse)
+		})
+
+		Convey("match respond with mulitple parts, strict", func() {
+			cmd := &Command{Command: "foo", Each: true, Respond: true, Strict: true,
+				Matcher: func(s string) (bool, string) { return len(s) == 3, "" },
+			}
+			So(match(cmd, "noye: foo bar baz"), ShouldBeTrue)
+			So(match(cmd, "noye: foo bar asdf"), ShouldBeFalse) // strict
 			So(match(cmd, "foo bar asdf"), ShouldBeFalse)
 			So(match(cmd, "foo bar baz"), ShouldBeFalse)
 			So(match(cmd, "noye: bar foo"), ShouldBeFalse)
