@@ -5,7 +5,6 @@ import (
 
 	"github.com/j6n/naver/music"
 	"github.com/j6n/naver/tvcast"
-	// for groups
 	"github.com/j6n/noye/noye"
 	"github.com/j6n/noye/plugin"
 )
@@ -20,21 +19,14 @@ func New() *Naver {
 	return naver
 }
 
-// http://tvcast.naver.com/v/42788
-
 var tvcastRe = regexp.MustCompile(`(?:tvcast.naver.com/v/(\d+)$)|(\d+)$`)
+var musicRe = regexp.MustCompile(`(http://music.naver.com/.*?\S*)+`)
 
 func (n *Naver) process() {
-	music := plugin.Respond("music", plugin.RegexMatcher(
-		regexp.MustCompile(`(http://music.naver.com/.*?\S*)+`),
-		true,
-	))
+	music := plugin.Respond("music", plugin.RegexMatcher(musicRe, true))
 	music.Each = true
 
-	tvcast := plugin.Respond("tvcast", plugin.RegexMatcher(
-		tvcastRe,
-		true,
-	))
+	tvcast := plugin.Respond("tvcast", plugin.RegexMatcher(tvcastRe, true))
 	tvcast.Each = true
 
 	for msg := range n.Listen() {
@@ -48,6 +40,8 @@ func (n *Naver) process() {
 }
 
 func (n *Naver) handleMusic(msg noye.Message, match []string) {
+	defer recover() // don't crash
+
 	for _, url := range match {
 		ids, err := music.FindIDs(url)
 		if err != nil {
@@ -69,6 +63,8 @@ func (n *Naver) handleMusic(msg noye.Message, match []string) {
 }
 
 func (n *Naver) handleTvcast(msg noye.Message, matches []string) {
+	defer recover() // don't crash
+
 	for _, match := range matches {
 		var id string
 		for _, p := range tvcastRe.FindStringSubmatch(match)[1:] {
