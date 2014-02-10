@@ -41,7 +41,7 @@ func (n *Naver) process() {
 }
 
 func (n *Naver) handleMusic(msg noye.Message, match []string) {
-	defer recover() // don't crash
+	defer func() { recover() }() // don't crash
 
 	for _, url := range match {
 		ids, err := music.FindIDs(url)
@@ -69,7 +69,7 @@ func (n *Naver) handleMusic(msg noye.Message, match []string) {
 }
 
 func (n *Naver) handleTvcast(msg noye.Message, matches []string) {
-	defer recover() // don't crash
+	defer func() { recover() }() // don't crash
 
 	for _, match := range matches {
 		var id string
