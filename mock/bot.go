@@ -18,31 +18,17 @@ func NewMockBot() *MockBot {
 	}
 }
 
-func (m *MockBot) Dial(addr, nick, user string) error {
-	return nil
-}
+func (m *MockBot) Dial(addr, nick, user string) error { return nil }
 
 func (m *MockBot) Close() {}
 
-func (m *MockBot) Send(f string, a ...interface{}) {
-	m.SendFn(f, a)
-}
+func (m *MockBot) Send(f string, a ...interface{}) { m.SendFn(f, a) }
 
-func (m *MockBot) Privmsg(target, msg string) {
-	m.PrivmsgFn(target, msg)
-}
+func (m *MockBot) Privmsg(target, msg string) { m.PrivmsgFn(target, msg) }
 
-func (m *MockBot) Join(target string) {
-	m.JoinFn(target)
-}
+func (m *MockBot) Join(target string) { m.JoinFn(target) }
+func (m *MockBot) Part(target string) { m.PartFn(target) }
 
-func (m *MockBot) Part(target string) {
-	m.PartFn(target)
-}
+func (m *MockBot) Wait() <-chan struct{} { return nil }
 
-func (m *MockBot) Wait() <-chan struct{} {
-	return nil
-}
-
-func (m *MockBot) AddPlugin(p noye.Plugin) {
-}
+func (m *MockBot) AddEvent(ev noye.Event) {}

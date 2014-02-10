@@ -13,7 +13,7 @@ func TestNaver(t *testing.T) {
 
 	Convey("Naver plugin should", t, func() {
 		Convey("handle a music command", func() {
-			Convey("with one url", func() {
+			SkipConvey("with one url", func() {
 				bot, naver, res := mock.NewMockBot(), New(), make(chan string)
 				bot.PrivmsgFn = func(target, msg string) { res <- msg }
 
@@ -31,7 +31,7 @@ func TestNaver(t *testing.T) {
 				close(res)
 			})
 
-			Convey("with multiple urls", func() {
+			SkipConvey("with multiple urls", func() {
 				bot, naver, res := mock.NewMockBot(), New(), make(chan string)
 				bot.PrivmsgFn = func(target, msg string) { res <- msg }
 
@@ -52,9 +52,26 @@ func TestNaver(t *testing.T) {
 
 				close(res)
 			})
+
+			Convey("with mixed tvcast/music", func() {
+				bot, naver, res := mock.NewMockBot(), New(), make(chan string)
+				bot.PrivmsgFn = func(target, msg string) { res <- msg }
+
+				naver.Hook(bot)
+				naver.Listen() <- noye.Message{
+					"museun",
+					"#museun",
+					"noye: music http://music.naver.com/promotion/specialContent.nhn?articleId=4592&page=1",
+				}
+
+				t.Log(<-res)
+				t.Log(<-res)
+
+				close(res)
+			})
 		})
 
-		Convey("handle a tvcast command", func() {
+		SkipConvey("handle a tvcast command", func() {
 			Convey("with one url", func() {
 				bot, naver, res := mock.NewMockBot(), New(), make(chan string)
 				bot.PrivmsgFn = func(target, msg string) { res <- msg }

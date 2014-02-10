@@ -46,9 +46,26 @@ func (n *Naver) handleMusic(msg noye.Message, match []string) {
 	for _, url := range match {
 		ids, err := music.FindIDs(url)
 		if err != nil {
-			n.Error(msg, "music/findIDs", err)
 			continue
 		}
+
+		// try tvcast per url
+		go func(url string) {
+			if vid, key, ok := tvcast.CheckTvcast(url); ok {
+				vid, err := tvcast.GetVideoAdvanced(vid, key)
+				if err != nil {
+					return
+				}
+
+				url, err = shorten.URL(vid.PlayUrl)
+				if err != nil {
+					n.Error(msg, "unable to shorten the url", nil)
+					return
+				}
+
+				n.Reply(msg, "%s | [%s] %s", url, vid.Encoding, vid.Title)
+			}
+		}(url)
 
 		for _, id := range ids {
 			vid, err := music.GetVideo(id)

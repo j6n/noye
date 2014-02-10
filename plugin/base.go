@@ -37,3 +37,10 @@ func (b *BasePlugin) Reply(msg noye.Message, f string, a ...interface{}) {
 func (b *BasePlugin) Error(msg noye.Message, text string, err error) {
 	b.Reply(msg, "error with %s (%s)", text, err)
 }
+
+// type Handler func(noye.Message, []string)
+
+// func (b *BasePlugin) Handle(fn Handler, msg noye.Message, result []string) {
+// 	defer func() { recover() }() // don't crash
+// 	fn(msg, result)
+// }
