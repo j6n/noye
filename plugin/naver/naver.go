@@ -7,6 +7,7 @@ import (
 	"github.com/j6n/naver/tvcast"
 	"github.com/j6n/noye/noye"
 	"github.com/j6n/noye/plugin"
+	"github.com/j6n/shorten"
 )
 
 type Naver struct {
@@ -56,8 +57,13 @@ func (n *Naver) handleMusic(msg noye.Message, match []string) {
 				continue
 			}
 
-			n.Reply(msg, "[%s] %s", vid.Encoding, vid.Title)
-			n.Reply(msg, "%s", vid.PlayUrl)
+			url, err := shorten.URL(vid.PlayUrl)
+			if err != nil {
+				n.Error(msg, "unable to shorten the url", nil)
+				continue
+			}
+
+			n.Reply(msg, "%s | [%s] %s", url, vid.Encoding, vid.Title)
 		}
 	}
 }
@@ -80,7 +86,12 @@ func (n *Naver) handleTvcast(msg noye.Message, matches []string) {
 			continue
 		}
 
-		n.Reply(msg, "[%s] %s", vid.Encoding, vid.Title)
-		n.Reply(msg, "%s", vid.PlayUrl)
+		url, err := shorten.URL(vid.PlayUrl)
+		if err != nil {
+			n.Error(msg, "unable to shorten the url", nil)
+			continue
+		}
+
+		n.Reply(msg, "%s | [%s] %s", url, vid.Encoding, vid.Title)
 	}
 }
