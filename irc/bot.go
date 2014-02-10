@@ -3,34 +3,31 @@ package irc
 import (
 	"fmt"
 	"log"
-	"strings"
 	"sync"
 
 	"github.com/j6n/noye/noye"
 )
 
 type Bot struct {
-	Autojoin []string
-	plugins  []noye.Plugin
-
 	conn noye.Conn
 	stop chan struct{}
-	once sync.Once
+
+	events map[string][]noye.Event
+	once   sync.Once
 }
 
 func New(conn noye.Conn) *Bot {
 	bot := &Bot{
-		conn: conn,
-		stop: make(chan struct{}),
-
-		Autojoin: make([]string, 0),
+		conn:   conn,
+		stop:   make(chan struct{}),
+		events: make(map[string][]noye.Event),
 	}
 
 	return bot
 }
 
 func (b *Bot) Dial(addr, nick, user string) (err error) {
-	if err = b.conn.Dial(addr, nick); err != nil {
+	if err = b.conn.Dial(addr); err != nil {
 		return
 	}
 
@@ -42,20 +39,20 @@ func (b *Bot) Dial(addr, nick, user string) (err error) {
 }
 
 func (b *Bot) Send(f string, a ...interface{}) {
-	msg := fmt.Sprintf(f, a...)
-	b.conn.WriteLine(msg)
+	b.conn.WriteLine(fmt.Sprintf(f, a...))
 }
 
-func (b *Bot) Privmsg(target, msg string) {
-	b.Send("PRIVMSG %s :%s", target, msg)
-}
+func (b *Bot) Privmsg(t, msg string) { b.Send("PRIVMSG %s :%s", t, msg) }
 
-func (b *Bot) Join(target string) {
-	b.Send("JOIN %s", target)
-}
+func (b *Bot) Join(t string) { b.Send("JOIN %s", t) }
+func (b *Bot) Part(t string) { b.Send("PART %s", t) }
 
-func (b *Bot) Part(target string) {
-	b.Send("PART %s", target)
+func (b *Bot) Wait() <-chan struct{} { return b.stop }
+
+func (b *Bot) AddEvent(ev noye.Event) {
+	ev.Init(b)
+	cmd := ev.Command()
+	b.events[cmd] = append(b.events[cmd], ev)
 }
 
 func (b *Bot) Close() {
@@ -63,15 +60,6 @@ func (b *Bot) Close() {
 		b.conn.Close()
 		close(b.stop)
 	})
-}
-
-func (b *Bot) Wait() <-chan struct{} {
-	return b.stop
-}
-
-func (b *Bot) AddPlugin(p noye.Plugin) {
-	p.Hook(b)
-	b.plugins = append(b.plugins, p)
 }
 
 func (b *Bot) readLoop() {
@@ -84,35 +72,11 @@ func (b *Bot) readLoop() {
 			return
 		}
 
-		switch msg := parse(line); msg.Command {
-		case "PING":
-			b.conn.WriteLine("PONG " + msg.Text)
-		case "001":
-			for _, join := range b.Autojoin {
-				b.Send("JOIN %s", join)
+		msg := parse(line)
+		if evs, ok := b.events[msg.Command]; ok {
+			for _, ev := range evs {
+				ev.Invoke(msg)
 			}
-		case "PRIVMSG":
-			b.handle(msg)
 		}
 	}
-}
-
-func (b *Bot) handle(msg Message) {
-	out := noye.Message{}
-
-	out.From = strings.Split(msg.Source, "!")[0]
-	out.Text = msg.Text
-
-	switch msg.Args[0][0] {
-	case '#', '&':
-		out.Target = msg.Args[0]
-	default:
-		out.Target = out.From
-	}
-
-	go func(out noye.Message) {
-		for _, p := range b.plugins {
-			p.Listen() <- out
-		}
-	}(out)
 }

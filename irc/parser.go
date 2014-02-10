@@ -1,16 +1,13 @@
 package irc
 
-import "strings"
+import (
+	"strings"
 
-type Message struct {
-	Source  string
-	Command string
-	Args    []string
-	Text    string
-}
+	"github.com/j6n/noye/noye"
+)
 
-func parse(raw string) Message {
-	msg := Message{}
+func parse(raw string) noye.IrcMessage {
+	msg := noye.IrcMessage{}
 	// :source command [args] :message
 	if raw[0] == ':' {
 		if i := strings.Index(raw, " "); i >= -1 {

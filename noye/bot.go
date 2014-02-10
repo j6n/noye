@@ -11,5 +11,5 @@ type Bot interface {
 	Part(target string)
 
 	Wait() <-chan struct{}
-	AddPlugin(Plugin)
+	AddEvent(Event)
 }

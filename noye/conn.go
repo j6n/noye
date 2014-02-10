@@ -1,7 +1,7 @@
 package noye
 
 type Conn interface {
-	Dial(addr, user string) error
+	Dial(addr string) error
 	Close()
 
 	WriteLine(raw string)

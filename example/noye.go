@@ -13,11 +13,14 @@ import (
 
 func main() {
 	bot := irc.New(&irc.Connection{})
-	bot.Autojoin = []string{"#museun", "#nanashin"}
 
-	bot.AddPlugin(admin.New())
-	bot.AddPlugin(naver.New())
-	bot.AddPlugin(translate.New())
+	bot.AddEvent(irc.PingEvent())
+	bot.AddEvent(irc.ReadyEvent("#museun"))
+	bot.AddEvent(irc.PrivmsgEvent(
+		admin.New(),
+		naver.New(),
+		translate.New(),
+	))
 
 	if err := bot.Dial("irc.quakenet.org:6667", "noye", "museun"); err != nil {
 		log.Fatalln(err)
