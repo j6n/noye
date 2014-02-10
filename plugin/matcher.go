@@ -4,6 +4,10 @@ import "regexp"
 
 type Matcher func(string) (bool, string)
 
+func NoopMatcher() Matcher {
+	return func(s string) (bool, string) { return true, s }
+}
+
 func SimpleMatcher(in string) Matcher {
 	return StringMatcher(in, false)
 }

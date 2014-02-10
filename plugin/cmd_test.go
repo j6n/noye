@@ -128,6 +128,13 @@ func TestCommand(t *testing.T) {
 				So(len(res), ShouldEqual, 3)
 				So(res, ShouldResemble, []string{"1", "2", "3"})
 			})
+
+			Convey("using the regex matcher, with no command", func() {
+				re := regexp.MustCompile(`^(\w+:\/\/[\w@][\w.:@]+\/?[\w\.?=%&=\-@/$,]*)$`)
+				cmd := &Command{Each: true, Matcher: RegexMatcher(re, true)}
+				So(match(cmd, "http://google.com"), ShouldBeTrue)
+				t.Logf("%q\n", cmd.Results())
+			})
 		})
 	})
 }
