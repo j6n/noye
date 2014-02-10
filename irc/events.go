@@ -45,12 +45,7 @@ type Privmsg struct {
 }
 
 func PrivmsgEvent(ps ...noye.Plugin) *Privmsg {
-	privmsg := &Privmsg{Base: NewBase("PRIVMSG")}
-	for _, p := range ps {
-		privmsg.plugins = append(privmsg.plugins, p)
-	}
-
-	return privmsg
+	return &Privmsg{Base: NewBase("PRIVMSG"), plugins: ps}
 }
 
 func (p *Privmsg) Invoke(msg noye.IrcMessage) {
