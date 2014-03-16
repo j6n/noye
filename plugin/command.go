@@ -18,6 +18,10 @@ type Command struct {
 	results []string
 }
 
+// Options are a set of booleans which configure how the processing of the command should be handled.
+// Respond means the commands expects a prefix
+// Strict means the match must be true
+// Each means to match for each part
 type Options struct {
 	Respond bool
 	Strict  bool
