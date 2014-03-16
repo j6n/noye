@@ -83,7 +83,7 @@ func (b *Bot) Wait() <-chan struct{} {
 
 // Ready returns a channel that'll be closed when the bot is ready
 func (b *Bot) Ready() <-chan struct{} {
-	return b.stop.yield()
+	return b.ready.yield()
 }
 
 // Close attempts to close the bots connection
@@ -109,7 +109,8 @@ func (b *Bot) readLoop() {
 		err  error
 	)
 
-	for line, err = b.conn.ReadLine(); ; {
+	for {
+		line, err = b.conn.ReadLine()
 		if err != nil {
 			log.Println(err)
 			return
