@@ -8,19 +8,39 @@ import (
 	"github.com/j6n/noye/noye"
 )
 
+type signal struct {
+	signal chan struct{}
+	once   sync.Once
+}
+
+func newSignal() signal {
+	return signal{signal: make(chan struct{})}
+}
+
+func (s signal) yield() <-chan struct{} {
+	return s.signal
+}
+
+func (s signal) close() {
+	s.once.Do(func() {
+		close(s.signal)
+	})
+}
+
 // Bot encapsulates all the parts to run a bot
 type Bot struct {
 	conn noye.Conn
-	stop chan struct{}
-
 	once sync.Once
+
+	stop, ready signal
 }
 
 // New takes a noye.Conn and returns a new Bot
 func New(conn noye.Conn) *Bot {
 	bot := &Bot{
-		conn: conn,
-		stop: make(chan struct{}),
+		conn:  conn,
+		stop:  newSignal(),
+		ready: newSignal(),
 	}
 
 	return bot
@@ -61,14 +81,19 @@ func (b *Bot) Part(t string) {
 
 // Wait returns a channel that'll be closed when the bot dies
 func (b *Bot) Wait() <-chan struct{} {
-	return b.stop
+	return b.stop.yield()
+}
+
+// Ready returns a channel that'll be closed when the bot is ready
+func (b *Bot) Ready() <-chan struct{} {
+	return b.stop.yield()
 }
 
 // Close attempts to close the bots connection
 func (b *Bot) Close() {
 	b.once.Do(func() {
 		b.conn.Close()
-		close(b.stop)
+		b.stop.close()
 	})
 }
 
@@ -82,8 +107,27 @@ func (b *Bot) readLoop() {
 			return
 		}
 
-		msg := parse(line)
-		// do something with msg
-		log.Println(msg)
+		if !b.handle(line) {
+			// we got an unhandled event
+		}
 	}
+}
+
+func (b *Bot) handle(line string) (ok bool) {
+	msg := parse(line)
+	switch msg.Command {
+	case "PING":
+		// send a PONG back
+		b.Send("PONG %s", msg.Text)
+		ok = true
+	case "001":
+		// BUG: this should be using a sync.Once
+		b.ready.close()
+		ok = true
+	case "PRIVMSG":
+		// dispatch to plugins
+		ok = true
+	}
+
+	return
 }

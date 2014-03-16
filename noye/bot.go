@@ -12,4 +12,5 @@ type Bot interface {
 	Part(target string)
 
 	Wait() <-chan struct{}
+	Ready() <-chan struct{}
 }

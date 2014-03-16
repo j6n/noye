@@ -18,24 +18,24 @@ func SimpleMatcher(in string) Matcher {
 
 // StringMatcher is a matcher which also captures the input
 func StringMatcher(in string, capture bool) Matcher {
-	return func(s string) (bool, string) {
-		ok := s == in
+	return func(s string) (ok bool, res string) {
+		ok = s == in
 		if capture && ok {
-			return ok, s
+			res = s
 		}
 
-		return ok, ""
+		return
 	}
 }
 
 // RegexMatcher uses a regex to create a matcher
 func RegexMatcher(re *regexp.Regexp, capture bool) Matcher {
-	return func(s string) (bool, string) {
-		ok := re.MatchString(s)
+	return func(s string) (ok bool, res string) {
+		ok = re.MatchString(s)
 		if capture && ok {
-			return ok, s
+			res = s
 		}
 
-		return ok, ""
+		return
 	}
 }

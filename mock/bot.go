@@ -39,3 +39,6 @@ func (m *MockBot) Part(target string) { m.PartFn(target) }
 
 // Wait is just here for the interface
 func (m *MockBot) Wait() <-chan struct{} { return nil }
+
+// Ready is just here for the interface
+func (m *MockBot) Ready() <-chan struct{} { return nil }
