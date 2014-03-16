@@ -6,6 +6,8 @@ import (
 	"github.com/j6n/noye/noye"
 )
 
+// parse takes a raw string and returns an IrcMessage
+// by parsing it somewhat accordingly to the IRC RFC
 func parse(raw string) noye.IrcMessage {
 	msg := noye.IrcMessage{}
 	// :source command [args] :message
