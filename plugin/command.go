@@ -11,7 +11,6 @@ import (
 // This DSL allows an irc-bot command, via chat to be matched
 // in a simple, programmatic fashion.
 type Command struct {
-	Respond  bool
 	Command  string
 	Options  Options
 	Matchers []Matcher
@@ -20,20 +19,22 @@ type Command struct {
 }
 
 type Options struct {
-	Strict bool
-	Each   bool
+	Respond bool
+	Strict  bool
+	Each    bool
 }
 
 // Hear is a command that isn't directed toward the bot
 // It takes a command string and a matcher and returns a Command
-func Hear(cmd string, matchers ...Matcher) *Command {
+func Hear(cmd string, opt Options, matchers ...Matcher) *Command {
 	return &Command{Command: cmd, Matchers: matchers}
 }
 
 // Respond is a command that is directed toward the bot
 // It takes a command string and a matcher and returns a Command
-func Respond(cmd string, matchers ...Matcher) *Command {
-	return &Command{Command: cmd, Respond: true, Matchers: matchers}
+func Respond(cmd string, opt Options, matchers ...Matcher) *Command {
+	opt.Respond = true
+	return &Command{Command: cmd, Options: opt, Matchers: matchers}
 }
 
 // Match matches the command to the noye.Message
@@ -46,7 +47,7 @@ func (c *Command) Match(msg noye.Message) bool {
 	parts := strings.Fields(msg.Text)
 
 	// check to see if a nick was prefixed
-	if c.Respond {
+	if c.Options.Respond {
 		nick := "noye" // TODO get current nick
 		ok, err := regexp.MatchString(`(?:`+nick+`[:,]?\s*)`, parts[0])
 		if err != nil || !ok {
@@ -58,13 +59,13 @@ func (c *Command) Match(msg noye.Message) bool {
 	hasCommand := c.Command != ""
 
 	// if we expect a nick prefix and a command, but only have 1 part
-	if (len(parts) == 1 && c.Respond) && hasCommand {
+	if (len(parts) == 1 && c.Options.Respond) && hasCommand {
 		return false
 	}
 
 	index := 0
 	// skip first element if we've matched against `respond`
-	if c.Respond {
+	if c.Options.Respond {
 		index++
 	}
 
@@ -74,7 +75,7 @@ func (c *Command) Match(msg noye.Message) bool {
 	}
 
 	// skip next element if we've matched against `respond`
-	if c.Respond || hasCommand {
+	if c.Options.Respond || hasCommand {
 		index++
 	}
 

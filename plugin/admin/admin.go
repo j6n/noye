@@ -22,9 +22,8 @@ func New() *Admin {
 func (a *Admin) process() {
 	chanMatcher := plugin.RegexMatcher(regexp.MustCompile("(#.*?)$"), true)
 
-	join := plugin.Respond("join", chanMatcher)
-	part := plugin.Respond("part", chanMatcher)
-	join.Each, part.Each = true, true
+	join := plugin.Respond("join", plugin.Options{Each: true}, chanMatcher)
+	part := plugin.Respond("part", plugin.Options{Each: true}, chanMatcher)
 
 	handle := func(msg noye.Message) {
 		switch {
