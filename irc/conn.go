@@ -17,7 +17,9 @@ func (c *Connection) Dial(addr string) (err error) {
 }
 
 // Close closes the connection
-func (c *Connection) Close() { c.conn.Close() }
+func (c *Connection) Close() {
+	c.conn.Close()
+}
 
 // WriteLine writes the 'raw' string to the connection
 func (c *Connection) WriteLine(raw string) {
