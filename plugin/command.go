@@ -7,6 +7,9 @@ import (
 	"github.com/j6n/noye/noye"
 )
 
+// Command is a type that makes up a DSL.
+// This DSL allows an irc-bot command, via chat to be matched
+// in a simple, programmatic fashion.
 type Command struct {
 	Respond bool
 	Command string
@@ -17,14 +20,20 @@ type Command struct {
 	results []string
 }
 
-func Hear(cmd string, matcher Matcher) Command {
-	return Command{Command: cmd, Matcher: matcher}
+// Hear is a command that isn't directed toward the bot
+// It takes a command string and a matcher and returns a Command
+func Hear(cmd string, matcher Matcher) *Command {
+	return &Command{Command: cmd, Matcher: matcher}
 }
 
-func Respond(cmd string, matcher Matcher) Command {
-	return Command{Command: cmd, Respond: true, Matcher: matcher}
+// Respond is a command that is directed toward the bot
+// It takes a command string and a matcher and returns a Command
+func Respond(cmd string, matcher Matcher) *Command {
+	return &Command{Command: cmd, Respond: true, Matcher: matcher}
 }
 
+// Match matches the command to the noye.Message
+// returning whether it matched or not
 func (c *Command) Match(msg noye.Message) bool {
 	// reset the results
 	c.results = make([]string, 0)
@@ -97,6 +106,7 @@ func (c *Command) Match(msg noye.Message) bool {
 	return ok
 }
 
+// Results returns the command results
 func (c *Command) Results() []string {
 	return c.results
 }
