@@ -1,5 +1,7 @@
 package mock
 
+import "github.com/j6n/noye/noye"
+
 // MockBot is a type that implements noye.Bot
 // which can have parts of it overridden by changing the functors
 type MockBot struct {
@@ -42,3 +44,6 @@ func (m *MockBot) Wait() <-chan struct{} { return nil }
 
 // Ready is just here for the interface
 func (m *MockBot) Ready() <-chan struct{} { return nil }
+
+// AddPlugin is just here for the interface
+func (m *MockBot) AddPlugin(plugin noye.Plugin) {}
