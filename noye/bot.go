@@ -1,5 +1,6 @@
 package noye
 
+// Bot is an abstract contract for an IRC Bot
 type Bot interface {
 	Dial(addr, nick, user string) error
 	Close()
