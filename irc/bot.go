@@ -94,7 +94,7 @@ func (b *Bot) Close() {
 	})
 }
 
-// AddPlugins adds the plugin to the bots internal list
+// AddPlugin adds the plugin to the bots internal list
 // It also adds a reference for the bot to the plugin
 func (b *Bot) AddPlugin(plugin noye.Plugin) {
 	plugin.Hook(b)
