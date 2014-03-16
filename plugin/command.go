@@ -84,20 +84,30 @@ func (c *Command) Match(msg noye.Message) bool {
 		c.Matchers = append(c.Matchers, func(string) (bool, string) { return true, "" })
 	}
 
+	matchEach := func(input string) ([]string, bool) {
+		var result []string
+		for _, matcher := range c.Matchers {
+			if ok, s := matcher(input); ok {
+				if s != "" {
+					result = append(result, s)
+				}
+			} else if c.Options.Strict {
+				return result, false
+			}
+		}
+
+		return result, true
+	}
+
 	// if we're using the matcher against each part
 	if c.Options.Each {
 		// ...then match each remaining part
 		for _, part := range parts[index:] {
 			// ...to each matcher
-			for _, matcher := range c.Matchers {
-				if ok, s := matcher(part); ok {
-					if s != "" {
-						c.results = append(c.results, s)
-					}
-				} else if c.Options.Strict {
-					// if we are strict matching, then we've failed if we've found no match
-					return false
-				}
+			if res, ok := matchEach(part); ok {
+				c.results = append(c.results, res...)
+			} else {
+				return false
 			}
 		}
 
@@ -107,14 +117,10 @@ func (c *Command) Match(msg noye.Message) bool {
 
 	// match against the parts rejoined as a string
 	input := strings.Join(parts[index:], " ")
-	for _, matcher := range c.Matchers {
-		if ok, s := matcher(input); ok {
-			if s != "" {
-				c.results = append(c.results, s)
-			}
-		} else if c.Options.Strict {
-			return false
-		}
+	if res, ok := matchEach(input); ok {
+		c.results = append(c.results, res...)
+	} else {
+		return false
 	}
 
 	return true
