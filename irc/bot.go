@@ -3,34 +3,30 @@ package irc
 import (
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 
 	"github.com/j6n/noye/noye"
 )
 
+// do I really need this?
 type signal struct {
 	signal chan struct{}
 	once   sync.Once
 }
 
-func newSignal() signal {
-	return signal{signal: make(chan struct{})}
-}
+func newSignal() signal { return signal{signal: make(chan struct{})} }
 
-func (s signal) yield() <-chan struct{} {
-	return s.signal
-}
+func (s signal) yield() <-chan struct{} { return s.signal }
 
-func (s signal) close() {
-	s.once.Do(func() {
-		close(s.signal)
-	})
-}
+func (s signal) close() { s.once.Do(func() { close(s.signal) }) }
 
 // Bot encapsulates all the parts to run a bot
 type Bot struct {
 	conn noye.Conn
 	once sync.Once
+
+	plugins []noye.Plugin
 
 	stop, ready signal
 }
@@ -38,9 +34,10 @@ type Bot struct {
 // New takes a noye.Conn and returns a new Bot
 func New(conn noye.Conn) *Bot {
 	bot := &Bot{
-		conn:  conn,
-		stop:  newSignal(),
-		ready: newSignal(),
+		conn:    conn,
+		plugins: make([]noye.Plugin, 0),
+		stop:    newSignal(),
+		ready:   newSignal(),
 	}
 
 	return bot
@@ -97,37 +94,58 @@ func (b *Bot) Close() {
 	})
 }
 
+// AddPlugins adds the plugin to the bots internal list
+// It also adds a reference for the bot to the plugin
+func (b *Bot) AddPlugin(plugin noye.Plugin) {
+	plugin.Hook(b)
+	b.plugins = append(b.plugins, plugin)
+}
+
 func (b *Bot) readLoop() {
 	defer func() { b.Close() }()
 
-	for {
-		line, err := b.conn.ReadLine()
+	var (
+		line string
+		err  error
+	)
+
+	for line, err = b.conn.ReadLine(); ; {
 		if err != nil {
 			log.Println(err)
 			return
 		}
 
-		if !b.handle(line) {
-			// we got an unhandled event
-		}
+		b.handle(line)
 	}
 }
 
-func (b *Bot) handle(line string) (ok bool) {
+func (b *Bot) handle(line string) {
 	msg := parse(line)
 	switch msg.Command {
 	case "PING":
 		// send a PONG back
 		b.Send("PONG %s", msg.Text)
-		ok = true
 	case "001":
 		// BUG: this should be using a sync.Once
 		b.ready.close()
-		ok = true
 	case "PRIVMSG":
+		out := noye.Message{
+			From: strings.Split(msg.Source, "!")[0],
+			Text: msg.Text,
+		}
+
+		switch msg.Args[0][0] {
+		case '#', '&':
+			out.Target = msg.Args[0]
+		default:
+			out.Target = out.From
+		}
+
 		// dispatch to plugins
-		ok = true
+		for _, plugin := range b.plugins {
+			plugin.Listen() <- out
+		}
 	}
 
-	return
+	// default should delegate to any extra eventsn
 }

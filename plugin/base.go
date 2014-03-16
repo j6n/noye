@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/j6n/noye/noye"
 )
@@ -11,13 +12,15 @@ import (
 // noye.Messages on and a map of disabled things
 type Base struct {
 	Bot      noye.Bot
+	name     string
 	input    chan noye.Message
 	Disabled map[string]bool
 }
 
 // New returns a new Base plugin
-func New() *Base {
+func New(name string) *Base {
 	return &Base{
+		name:     name,
 		input:    make(chan noye.Message),
 		Disabled: make(map[string]bool),
 	}
@@ -26,6 +29,11 @@ func New() *Base {
 // Listen returns the message to receives messages upon
 func (b *Base) Listen() chan noye.Message {
 	return b.input
+}
+
+// Name returns the plugins name
+func (b *Base) Name() string {
+	return b.name
 }
 
 // Status returns whether the input is disabled
@@ -40,7 +48,9 @@ func (b *Base) SetStatus(ch string, status bool) {
 }
 
 // Hook sets the noye.Bot reference
-func (b *Base) Hook(bot noye.Bot) { b.Bot = bot }
+func (b *Base) Hook(bot noye.Bot) {
+	b.Bot = bot
+}
 
 // Reply replies to the noye.Message with a formatted string
 func (b *Base) Reply(msg noye.Message, f string, a ...interface{}) {
@@ -52,9 +62,16 @@ func (b *Base) Error(msg noye.Message, text string, err error) {
 	b.Reply(msg, "error with %s (%s)", text, err)
 }
 
-// type Handler func(noye.Message, []string)
+// SafeHandler is a function that'll safely execute and capture any panics
+type SafeHandler func(noye.Message)
 
-// func (b *Base) Handle(fn Handler, msg noye.Message, result []string) {
-// 	defer func() { recover() }() // don't crash
-// 	fn(msg, result)
-// }
+// SafeHandle takes a SafeHandler and a msg and captures any panics
+func (b *Base) SafeHandle(fn SafeHandler, msg noye.Message) {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Println("recover!", b.Name(), "from", err)
+		}
+	}()
+
+	fn(msg)
+}
