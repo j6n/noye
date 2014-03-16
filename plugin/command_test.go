@@ -16,41 +16,48 @@ func TestCommand(t *testing.T) {
 		return cmd.Match(noye.Message{"museun", "#museun", strings.Join(s, " ")})
 	}
 
+	newCommand := func(cmd string, matchers ...Matcher) *Command {
+		return &Command{Command: cmd, Matchers: matchers}
+	}
+
 	Convey("Command should", t, func() {
 		Convey("match a simple command", func() {
-			cmd := &Command{Command: "hello"}
+			cmd := newCommand("hello")
+
 			So(match(cmd, "hello"), ShouldBeTrue)
 			So(match(cmd, "something"), ShouldBeFalse)
 		})
 
 		Convey("match a simple respond", func() {
-			cmd := &Command{Respond: true, Command: "something"}
+			cmd := newCommand("something")
+			cmd.Respond = true
+
 			So(match(cmd, "noye: something"), ShouldBeTrue)
 			So(match(cmd, "noye: do something"), ShouldBeFalse)
 		})
 
 		Convey("match multiple parts", func() {
-			cmd := &Command{Command: "foo", Each: true,
-				Matcher: func(s string) (bool, string) { return len(s) == 3, "" },
-			}
+			cmd := newCommand("foo", func(s string) (bool, string) { return len(s) == 3, "" })
+			cmd.Options = Options{Each: true}
+
 			So(match(cmd, "foo bar baz"), ShouldBeTrue)
 			So(match(cmd, "foo foo true"), ShouldBeTrue) // non strict
 			So(match(cmd, "noye: test this out"), ShouldBeFalse)
 		})
 
 		Convey("match multiple parts, strict", func() {
-			cmd := &Command{Command: "foo", Each: true, Strict: true,
-				Matcher: func(s string) (bool, string) { return len(s) == 3, "" },
-			}
+			cmd := newCommand("foo", func(s string) (bool, string) { return len(s) == 3, "" })
+			cmd.Options = Options{Each: true, Strict: true}
+
 			So(match(cmd, "foo bar baz"), ShouldBeTrue)
 			So(match(cmd, "foo foo true"), ShouldBeFalse) // strict
 			So(match(cmd, "noye: test this out"), ShouldBeFalse)
 		})
 
 		Convey("match respond with mulitple parts", func() {
-			cmd := &Command{Command: "foo", Each: true, Respond: true,
-				Matcher: func(s string) (bool, string) { return len(s) == 3, "" },
-			}
+			cmd := newCommand("foo", func(s string) (bool, string) { return len(s) == 3, "" })
+			cmd.Options, cmd.Respond = Options{Each: true}, true
+
 			So(match(cmd, "noye: foo bar baz"), ShouldBeTrue)
 			So(match(cmd, "noye: foo bar asdf"), ShouldBeTrue) // non strict
 			So(match(cmd, "foo bar asdf"), ShouldBeFalse)
@@ -59,9 +66,9 @@ func TestCommand(t *testing.T) {
 		})
 
 		Convey("match respond with mulitple parts, strict", func() {
-			cmd := &Command{Command: "foo", Each: true, Respond: true, Strict: true,
-				Matcher: func(s string) (bool, string) { return len(s) == 3, "" },
-			}
+			cmd := newCommand("foo", func(s string) (bool, string) { return len(s) == 3, "" })
+			cmd.Options, cmd.Respond = Options{Each: true, Strict: true}, true
+
 			So(match(cmd, "noye: foo bar baz"), ShouldBeTrue)
 			So(match(cmd, "noye: foo bar asdf"), ShouldBeFalse) // strict
 			So(match(cmd, "foo bar asdf"), ShouldBeFalse)
@@ -70,12 +77,12 @@ func TestCommand(t *testing.T) {
 		})
 
 		Convey("match simple with a result", func() {
-			cmd := &Command{Command: "foo", Matcher: func(s string) (bool, string) {
+			cmd := newCommand("foo", func(s string) (bool, string) {
 				if s == "test" {
 					return true, "bar"
 				}
 				return false, ""
-			}}
+			})
 
 			So(match(cmd, "foo test"), ShouldBeTrue)
 
@@ -85,14 +92,15 @@ func TestCommand(t *testing.T) {
 		})
 
 		Convey("match multiple with results", func() {
-			cmd := &Command{Command: "foo", Each: true, Matcher: func(s string) (bool, string) {
+			cmd := newCommand("foo", func(s string) (bool, string) {
 				ok, _ := regexp.MatchString("[0-9]", s)
 				if ok {
 					return ok, s
 				}
 
 				return false, ""
-			}}
+			})
+			cmd.Options = Options{Each: true}
 
 			So(match(cmd, "foo 1 0 0 4"), ShouldBeTrue)
 
@@ -103,7 +111,9 @@ func TestCommand(t *testing.T) {
 
 		Convey("match with built-in matchers", func() {
 			Convey("using the simple matcher", func() {
-				cmd := &Command{Command: "foo", Each: true, Matcher: SimpleMatcher("bar")}
+				cmd := newCommand("foo", SimpleMatcher("bar"))
+				cmd.Options = Options{Each: true}
+
 				So(match(cmd, "foo bar bar bar"), ShouldBeTrue)
 
 				res := cmd.Results()
@@ -111,7 +121,9 @@ func TestCommand(t *testing.T) {
 			})
 
 			Convey("using the string matcher", func() {
-				cmd := &Command{Command: "foo", Each: true, Matcher: StringMatcher("bar", true)}
+				cmd := newCommand("foo", StringMatcher("bar", true))
+				cmd.Options = Options{Each: true}
+
 				So(match(cmd, "foo bar bar bar"), ShouldBeTrue)
 
 				res := cmd.Results()
@@ -120,8 +132,9 @@ func TestCommand(t *testing.T) {
 			})
 
 			Convey("using the regex matcher", func() {
-				re := regexp.MustCompile("[0-9]")
-				cmd := &Command{Command: "foo", Each: true, Matcher: RegexMatcher(re, true)}
+				cmd := newCommand("foo", RegexMatcher(regexp.MustCompile("[0-9]"), true))
+				cmd.Options = Options{Each: true}
+
 				So(match(cmd, "foo a 1 2 b 3 c"), ShouldBeTrue)
 
 				res := cmd.Results()
@@ -131,9 +144,11 @@ func TestCommand(t *testing.T) {
 
 			Convey("using the regex matcher, with no command", func() {
 				re := regexp.MustCompile(`^(\w+:\/\/[\w@][\w.:@]+\/?[\w\.?=%&=\-@/$,]*)$`)
-				cmd := &Command{Each: true, Matcher: RegexMatcher(re, true)}
+				cmd := newCommand("", RegexMatcher(re, true))
+				cmd.Options = Options{Each: true}
+
 				So(match(cmd, "http://google.com"), ShouldBeTrue)
-				t.Logf("%q\n", cmd.Results())
+				So(cmd.Results(), ShouldResemble, []string{"http://google.com"})
 			})
 		})
 	})

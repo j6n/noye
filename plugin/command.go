@@ -11,25 +11,29 @@ import (
 // This DSL allows an irc-bot command, via chat to be matched
 // in a simple, programmatic fashion.
 type Command struct {
-	Respond bool
-	Command string
-	Each    bool
-	Strict  bool
-	Matcher func(string) (bool, string)
+	Respond  bool
+	Command  string
+	Options  Options
+	Matchers []Matcher
 
 	results []string
 }
 
+type Options struct {
+	Strict bool
+	Each   bool
+}
+
 // Hear is a command that isn't directed toward the bot
 // It takes a command string and a matcher and returns a Command
-func Hear(cmd string, matcher Matcher) *Command {
-	return &Command{Command: cmd, Matcher: matcher}
+func Hear(cmd string, matchers ...Matcher) *Command {
+	return &Command{Command: cmd, Matchers: matchers}
 }
 
 // Respond is a command that is directed toward the bot
 // It takes a command string and a matcher and returns a Command
-func Respond(cmd string, matcher Matcher) *Command {
-	return &Command{Command: cmd, Respond: true, Matcher: matcher}
+func Respond(cmd string, matchers ...Matcher) *Command {
+	return &Command{Command: cmd, Respond: true, Matchers: matchers}
 }
 
 // Match matches the command to the noye.Message
@@ -75,35 +79,44 @@ func (c *Command) Match(msg noye.Message) bool {
 	}
 
 	// if no default matcher was provided, give them one that always returns true
-	if c.Matcher == nil {
-		c.Matcher = func(string) (bool, string) { return true, "" }
+	if len(c.Matchers) == 0 {
+		c.Matchers = append(c.Matchers, func(string) (bool, string) { return true, "" })
 	}
 
 	// if we're using the matcher against each part
-	if c.Each {
-		success := true
+	if c.Options.Each {
 		// ...then match each remaining part
 		for _, part := range parts[index:] {
-			if ok, s := c.Matcher(part); ok {
-				if s != "" {
-					c.results = append(c.results, s)
+			// ...to each matcher
+			for _, matcher := range c.Matchers {
+				if ok, s := matcher(part); ok {
+					if s != "" {
+						c.results = append(c.results, s)
+					}
+				} else if c.Options.Strict {
+					// if we are strict matching, then we've failed if we've found no match
+					return false
 				}
-			} else if c.Strict {
-				success = false
 			}
 		}
 
 		// nothing else to do, we've succeeded
-		return success
+		return true
 	}
 
 	// match against the parts rejoined as a string
-	ok, s := c.Matcher(strings.Join(parts[index:], " "))
-	if ok && s != "" {
-		c.results = append(c.results, s)
+	input := strings.Join(parts[index:], " ")
+	for _, matcher := range c.Matchers {
+		if ok, s := matcher(input); ok {
+			if s != "" {
+				c.results = append(c.results, s)
+			}
+		} else if c.Options.Strict {
+			return false
+		}
 	}
 
-	return ok
+	return true
 }
 
 // Results returns the command results
