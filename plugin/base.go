@@ -16,7 +16,6 @@ type Base struct {
 	input chan noye.Message
 
 	Disabled map[string]bool
-	Commands map[string]*Command
 	Handler  func(noye.Message)
 }
 
@@ -27,12 +26,7 @@ func New(name string, cmds ...*Command) *Base {
 		input: make(chan noye.Message),
 
 		Disabled: make(map[string]bool),
-		Commands: make(map[string]*Command),
 		Handler:  func(noye.Message) {},
-	}
-
-	for _, cmd := range cmds {
-		base.Commands[cmd.Command] = cmd
 	}
 
 	go base.process()

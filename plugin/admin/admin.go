@@ -12,7 +12,7 @@ type Admin struct{ *plugin.Base }
 
 // New returns a new Admin Plugin
 func New() *Admin {
-	admin := new(Admin)
+	admin := &Admin{plugin.New("admin")}
 
 	chanMatcher := plugin.RegexMatcher(regexp.MustCompile("(#.*?)$"), true)
 	whitelist := []string{"museun"} // TODO figure out how to get/update this
@@ -25,7 +25,6 @@ func New() *Admin {
 	join := plugin.Respond("join", opts, chanMatcher)
 	part := plugin.Respond("part", opts, chanMatcher)
 
-	admin.Base = plugin.New("admin", join, part)
 	admin.Handler = func(msg noye.Message) {
 		switch {
 		case join.Match(msg):
