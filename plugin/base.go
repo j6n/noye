@@ -7,6 +7,12 @@ import (
 	"github.com/j6n/noye/noye"
 )
 
+// Handler encapsulate a Command and gives it a callback
+type Handler struct {
+	*Command
+	Handle func(*Command, noye.Message)
+}
+
 // Base is a type to reduce boilerplate of plugins
 // It holds the noye.Bot reference, a channel to receive
 // noye.Messages on and a map of disabled things
@@ -63,18 +69,13 @@ func (b *Base) process() {
 					log.Printf("recover! %s/%s from %s\n", b.Name(), cmd.Command.Command, err)
 				}
 			}()
-			if !cmd.AcceptsFrom(msg.From) {
-				b.Reply(msg, "You can't do this command.")
-				continue
-			}
 			if cmd.Match(msg) {
+				if !cmd.AcceptsFrom(msg.From) {
+					b.Reply(msg, "You can't do this command.")
+					continue
+				}
 				cmd.Handle(cmd.Command, msg)
 			}
 		}
 	}
-}
-
-type Handler struct {
-	*Command
-	Handle func(*Command, noye.Message)
 }
