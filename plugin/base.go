@@ -11,19 +11,32 @@ import (
 // It holds the noye.Bot reference, a channel to receive
 // noye.Messages on and a map of disabled things
 type Base struct {
-	Bot      noye.Bot
-	name     string
-	input    chan noye.Message
+	Bot   noye.Bot
+	name  string
+	input chan noye.Message
+
 	Disabled map[string]bool
+	Commands map[string]*Command
+	Handler  func(noye.Message)
 }
 
 // New returns a new Base plugin
-func New(name string) *Base {
-	return &Base{
-		name:     name,
-		input:    make(chan noye.Message),
+func New(name string, cmds ...*Command) *Base {
+	base := &Base{
+		name:  name,
+		input: make(chan noye.Message),
+
 		Disabled: make(map[string]bool),
+		Commands: make(map[string]*Command),
+		Handler:  func(noye.Message) {},
 	}
+
+	for _, cmd := range cmds {
+		base.Commands[cmd.Command] = cmd
+	}
+
+	go base.process()
+	return base
 }
 
 // Listen returns the message to receives messages upon
@@ -62,16 +75,14 @@ func (b *Base) Error(msg noye.Message, text string, err error) {
 	b.Reply(msg, "error with %s (%s)", text, err)
 }
 
-// SafeHandler is a function that'll safely execute and capture any panics
-type SafeHandler func(noye.Message)
+func (b *Base) process() {
+	for msg := range b.input {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Println("recover!", b.Name(), "from", err)
+			}
+		}()
 
-// SafeHandle takes a SafeHandler and a msg and captures any panics
-func (b *Base) SafeHandle(fn SafeHandler, msg noye.Message) {
-	defer func() {
-		if err := recover(); err != nil {
-			log.Println("recover!", b.Name(), "from", err)
-		}
-	}()
-
-	fn(msg)
+		b.Handler(msg)
+	}
 }
