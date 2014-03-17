@@ -20,6 +20,10 @@ func TestCommand(t *testing.T) {
 		return &Command{Command: cmd, Matchers: matchers}
 	}
 
+	testMatcher := BaseMatcher{func(s string) (string, bool) {
+		return "", len(s) == 3
+	}}
+
 	Convey("Command should", t, func() {
 		Convey("match a simple command", func() {
 			cmd := newCommand("hello")
@@ -37,7 +41,7 @@ func TestCommand(t *testing.T) {
 		})
 
 		Convey("match multiple parts", func() {
-			cmd := newCommand("foo", func(s string) (bool, string) { return len(s) == 3, "" })
+			cmd := newCommand("foo", testMatcher)
 			cmd.Options.Each = true
 
 			So(match(cmd, "foo bar baz"), ShouldBeTrue)
@@ -46,7 +50,7 @@ func TestCommand(t *testing.T) {
 		})
 
 		Convey("match multiple parts, strict", func() {
-			cmd := newCommand("foo", func(s string) (bool, string) { return len(s) == 3, "" })
+			cmd := newCommand("foo", testMatcher)
 			cmd.Options = Options{Each: true, Strict: true}
 
 			So(match(cmd, "foo bar baz"), ShouldBeTrue)
@@ -55,7 +59,7 @@ func TestCommand(t *testing.T) {
 		})
 
 		Convey("match respond with mulitple parts", func() {
-			cmd := newCommand("foo", func(s string) (bool, string) { return len(s) == 3, "" })
+			cmd := newCommand("foo", testMatcher)
 			cmd.Options = Options{Each: true, Respond: true}
 
 			So(match(cmd, "noye: foo bar baz"), ShouldBeTrue)
@@ -66,7 +70,7 @@ func TestCommand(t *testing.T) {
 		})
 
 		Convey("match respond with mulitple parts, strict", func() {
-			cmd := newCommand("foo", func(s string) (bool, string) { return len(s) == 3, "" })
+			cmd := newCommand("foo", testMatcher)
 			cmd.Options = Options{Each: true, Strict: true, Respond: true}
 
 			So(match(cmd, "noye: foo bar baz"), ShouldBeTrue)
@@ -77,12 +81,13 @@ func TestCommand(t *testing.T) {
 		})
 
 		Convey("match simple with a result", func() {
-			cmd := newCommand("foo", func(s string) (bool, string) {
+			matcher := BaseMatcher{func(s string) (string, bool) {
 				if s == "test" {
-					return true, "bar"
+					return "bar", true
 				}
-				return false, ""
-			})
+				return "", false
+			}}
+			cmd := newCommand("foo", matcher)
 
 			So(match(cmd, "foo test"), ShouldBeTrue)
 
@@ -92,14 +97,14 @@ func TestCommand(t *testing.T) {
 		})
 
 		Convey("match multiple with results", func() {
-			cmd := newCommand("foo", func(s string) (bool, string) {
-				ok, _ := regexp.MatchString("[0-9]", s)
-				if ok {
-					return ok, s
+			matcher := BaseMatcher{func(s string) (string, bool) {
+				if ok, _ := regexp.MatchString("[0-9]", s); ok {
+					return s, ok
 				}
 
-				return false, ""
-			})
+				return "", false
+			}}
+			cmd := newCommand("foo", matcher)
 			cmd.Options.Each = true
 
 			So(match(cmd, "foo 1 0 0 4"), ShouldBeTrue)
@@ -111,7 +116,7 @@ func TestCommand(t *testing.T) {
 
 		Convey("match with built-in matchers", func() {
 			Convey("using the simple matcher", func() {
-				cmd := newCommand("foo", SimpleMatcher("bar"))
+				cmd := newCommand("foo", SimpleMatch("bar"))
 				cmd.Options.Each = true
 
 				So(match(cmd, "foo bar bar bar"), ShouldBeTrue)
@@ -121,7 +126,7 @@ func TestCommand(t *testing.T) {
 			})
 
 			Convey("using the string matcher", func() {
-				cmd := newCommand("foo", StringMatcher("bar", true))
+				cmd := newCommand("foo", StringMatch("bar", true))
 				cmd.Options.Each = true
 
 				So(match(cmd, "foo bar bar bar"), ShouldBeTrue)
@@ -132,7 +137,7 @@ func TestCommand(t *testing.T) {
 			})
 
 			Convey("using the regex matcher", func() {
-				cmd := newCommand("foo", RegexMatcher(regexp.MustCompile("[0-9]"), true))
+				cmd := newCommand("foo", RegexMatch(regexp.MustCompile("[0-9]"), true))
 				cmd.Options.Each = true
 
 				So(match(cmd, "foo a 1 2 b 3 c"), ShouldBeTrue)
@@ -144,7 +149,7 @@ func TestCommand(t *testing.T) {
 
 			Convey("using the regex matcher, with no command", func() {
 				re := regexp.MustCompile(`^(\w+:\/\/[\w@][\w.:@]+\/?[\w\.?=%&=\-@/$,]*)$`)
-				cmd := newCommand("", RegexMatcher(re, true))
+				cmd := newCommand("", RegexMatch(re, true))
 				cmd.Options.Each = true
 
 				So(match(cmd, "http://google.com"), ShouldBeTrue)

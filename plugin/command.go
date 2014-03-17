@@ -85,13 +85,13 @@ func (c *Command) Match(msg noye.Message) bool {
 
 	// if no default matcher was provided, give them one that always returns true
 	if len(c.Matchers) == 0 {
-		c.Matchers = append(c.Matchers, func(string) (bool, string) { return true, "" })
+		c.Matchers = append(c.Matchers, BaseMatcher{func(string) (string, bool) { return "", true }})
 	}
 
 	matchEach := func(input string) ([]string, bool) {
 		var result []string
 		for _, matcher := range c.Matchers {
-			if ok, s := matcher(input); ok {
+			if s, ok := matcher.Match()(input); ok {
 				if s != "" {
 					result = append(result, s)
 				}
