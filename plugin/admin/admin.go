@@ -20,10 +20,16 @@ func New() *Admin {
 }
 
 func (a *Admin) process() {
-	chanMatcher := plugin.RegexMatch(regexp.MustCompile("(#.*?)$"), true)
+	chanMatcher := plugin.RegexMatcher(regexp.MustCompile("(#.*?)$"), true)
+	whitelist := []string{"museun"} // TODO figure out how to get/update this
 
-	join := plugin.Respond("join", plugin.Options{Each: true}, chanMatcher)
-	part := plugin.Respond("part", plugin.Options{Each: true}, chanMatcher)
+	opts := plugin.Options{
+		Each:      true,
+		Whitelist: whitelist,
+	}
+
+	join := plugin.Respond("join", opts, chanMatcher)
+	part := plugin.Respond("part", opts, chanMatcher)
 
 	handle := func(msg noye.Message) {
 		switch {

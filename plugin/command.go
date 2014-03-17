@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/j6n/noye/noye"
+	"github.com/j6n/noye/util"
 )
 
 // Command is a type that makes up a DSL.
@@ -24,6 +25,7 @@ type Command struct {
 // Each means to match for each part
 type Options struct {
 	Respond, Strict, Each bool
+	Whitelist, Blacklist  []string
 }
 
 // Hear is a command that isn't directed toward the bot
@@ -44,6 +46,20 @@ func Respond(cmd string, opt Options, matchers ...Matcher) *Command {
 func (c *Command) Match(msg noye.Message) bool {
 	// reset the results
 	c.results = make([]string, 0)
+
+	// check the whitelist to see if the nick is on it
+	if len(c.Options.Whitelist) > 0 &&
+		!util.Contains(msg.From, c.Options.Whitelist...) {
+		// report nick isn't on the whitelist
+		return false
+	}
+
+	// check the blacklist to see if the nick is on it
+	if len(c.Options.Blacklist) > 0 &&
+		util.Contains(msg.From, c.Options.Blacklist...) {
+		// report nick is on the blacklist
+		return false
+	}
 
 	// split text in parts so we can drop nick/cmd if needed
 	parts := strings.Fields(msg.Text)
@@ -83,13 +99,13 @@ func (c *Command) Match(msg noye.Message) bool {
 
 	// if no default matcher was provided, give them one that always returns true
 	if len(c.Matchers) == 0 {
-		c.Matchers = append(c.Matchers, BaseMatcher{func(string) (string, bool) { return "", true }})
+		c.Matchers = append(c.Matchers, func(string) (string, bool) { return "", true })
 	}
 
 	matchEach := func(input string) ([]string, bool) {
 		var result []string
 		for _, matcher := range c.Matchers {
-			if s, ok := matcher.Match()(input); ok {
+			if s, ok := matcher(input); ok {
 				if s != "" {
 					result = append(result, s)
 				}

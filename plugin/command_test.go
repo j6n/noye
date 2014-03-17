@@ -20,9 +20,9 @@ func TestCommand(t *testing.T) {
 		return &Command{Command: cmd, Matchers: matchers}
 	}
 
-	testMatcher := BaseMatcher{func(s string) (string, bool) {
+	testMatcher := func(s string) (string, bool) {
 		return "", len(s) == 3
-	}}
+	}
 
 	Convey("Command should", t, func() {
 		Convey("match a simple command", func() {
@@ -81,12 +81,12 @@ func TestCommand(t *testing.T) {
 		})
 
 		Convey("match simple with a result", func() {
-			matcher := BaseMatcher{func(s string) (string, bool) {
+			matcher := func(s string) (string, bool) {
 				if s == "test" {
 					return "bar", true
 				}
 				return "", false
-			}}
+			}
 			cmd := newCommand("foo", matcher)
 
 			So(match(cmd, "foo test"), ShouldBeTrue)
@@ -97,13 +97,13 @@ func TestCommand(t *testing.T) {
 		})
 
 		Convey("match multiple with results", func() {
-			matcher := BaseMatcher{func(s string) (string, bool) {
+			matcher := func(s string) (string, bool) {
 				if ok, _ := regexp.MatchString("[0-9]", s); ok {
 					return s, ok
 				}
 
 				return "", false
-			}}
+			}
 			cmd := newCommand("foo", matcher)
 			cmd.Options.Each = true
 
@@ -116,7 +116,7 @@ func TestCommand(t *testing.T) {
 
 		Convey("match with built-in matchers", func() {
 			Convey("using the simple matcher", func() {
-				cmd := newCommand("foo", SimpleMatch("bar"))
+				cmd := newCommand("foo", SimpleMatcher("bar"))
 				cmd.Options.Each = true
 
 				So(match(cmd, "foo bar bar bar"), ShouldBeTrue)
@@ -126,7 +126,7 @@ func TestCommand(t *testing.T) {
 			})
 
 			Convey("using the string matcher", func() {
-				cmd := newCommand("foo", StringMatch("bar", true))
+				cmd := newCommand("foo", StringMatcher("bar", true))
 				cmd.Options.Each = true
 
 				So(match(cmd, "foo bar bar bar"), ShouldBeTrue)
@@ -137,7 +137,7 @@ func TestCommand(t *testing.T) {
 			})
 
 			Convey("using the regex matcher", func() {
-				cmd := newCommand("foo", RegexMatch(regexp.MustCompile("[0-9]"), true))
+				cmd := newCommand("foo", RegexMatcher(regexp.MustCompile("[0-9]"), true))
 				cmd.Options.Each = true
 
 				So(match(cmd, "foo a 1 2 b 3 c"), ShouldBeTrue)
@@ -149,12 +149,22 @@ func TestCommand(t *testing.T) {
 
 			Convey("using the regex matcher, with no command", func() {
 				re := regexp.MustCompile(`^(\w+:\/\/[\w@][\w.:@]+\/?[\w\.?=%&=\-@/$,]*)$`)
-				cmd := newCommand("", RegexMatch(re, true))
+				cmd := newCommand("", RegexMatcher(re, true))
 				cmd.Options.Each = true
 
 				So(match(cmd, "http://google.com"), ShouldBeTrue)
 				So(cmd.Results(), ShouldResemble, []string{"http://google.com"})
 			})
+		})
+
+		Convey("react to a whitelist", func() {
+			cmd := newCommand("foo", NoopMatcher())
+			cmd.Options.Whitelist = []string{"museun"}
+
+			So(match(cmd, "foo this is a test"), ShouldBeTrue)
+
+			cmd.Options.Whitelist = []string{"museun1"}
+			So(match(cmd, "foo this is a test"), ShouldBeFalse)
 		})
 	})
 }

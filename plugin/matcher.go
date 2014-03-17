@@ -1,79 +1,41 @@
 package plugin
 
-import (
-	"regexp"
+import "regexp"
 
-	"github.com/j6n/noye/util"
-)
-
-// MatchFn is a function that takes a string and
+// Matcher is a function that takes a string
 // returns whether it matched and the matched string
-type MatchFn func(string) (string, bool)
-
-// Matcher returns a MatchFn which can match against different types of input
-type Matcher interface {
-	Match() MatchFn
-}
-
-// BaseMatcher is a matcher which implements Match() naively
-type BaseMatcher struct{ Fn MatchFn }
-
-// Match returns the MatchFn for the Matcher
-func (b BaseMatcher) Match() MatchFn { return b.Fn }
+type Matcher func(string) (string, bool)
 
 // NoopMatcher is a matcher that does nothing
-var NoopMatcher BaseMatcher = BaseMatcher{
-	func(s string) (string, bool) { return s, true },
+func NoopMatcher() Matcher {
+	return func(s string) (string, bool) { return s, true }
 }
 
-// SimpleMatcher is a matcher that matches the input to 'in'
-type SimpleMatcher struct{ BaseMatcher }
-
-// StringMatcher is a matcher which also captures the input
-type StringMatcher struct{ BaseMatcher }
-
-// RegexMatcher uses a regex to create a matcher
-type RegexMatcher struct{ BaseMatcher }
-
-// AuthMatcher checks whether the input is authorized
-// This is used for matching against nicks
-type AuthMatcher struct{ BaseMatcher }
-
-// SimpleMatch returns a new SimpleMatcher
-func SimpleMatch(in string) SimpleMatcher {
-	return SimpleMatcher{BaseMatcher{StringMatch(in, false).Fn}}
+// SimpleMatcher is a matcher that matches the input
+func SimpleMatcher(in string) Matcher {
+	return StringMatcher(in, false)
 }
 
-// StringMatch returns a new StringMatcher
-func StringMatch(in string, capture bool) StringMatcher {
-	return StringMatcher{BaseMatcher{func(s string) (res string, ok bool) {
+// StringMatcher is a matcher that matches the input and also captures the input
+func StringMatcher(in string, capture bool) Matcher {
+	return func(s string) (res string, ok bool) {
 		ok = s == in
 		if capture && ok {
 			res = s
 		}
 
 		return
-	}}}
+	}
 }
 
-// RegexMatch returns a new RegexMatcher
-func RegexMatch(re *regexp.Regexp, capture bool) RegexMatcher {
-	return RegexMatcher{BaseMatcher{func(s string) (res string, ok bool) {
+// RegexMatcher uses a regex to create a matcher
+func RegexMatcher(re *regexp.Regexp, capture bool) Matcher {
+	return func(s string) (res string, ok bool) {
 		ok = re.MatchString(s)
 		if capture && ok {
 			res = s
 		}
 
 		return
-	}}}
-}
-
-// AuthMatch returns a new AuthMatcher
-func AuthMatch(whitelist []string) AuthMatcher {
-	return AuthMatcher{BaseMatcher{func(nick string) (string, bool) {
-		if !util.Contains(nick, whitelist...) {
-			return nick, false
-		}
-		return "", true
-	}}}
+	}
 }
