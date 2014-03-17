@@ -23,15 +23,13 @@ type Command struct {
 // Strict means the match must be true
 // Each means to match for each part
 type Options struct {
-	Respond bool
-	Strict  bool
-	Each    bool
+	Respond, Strict, Each bool
 }
 
 // Hear is a command that isn't directed toward the bot
 // It takes a command string and a matcher and returns a Command
 func Hear(cmd string, opt Options, matchers ...Matcher) *Command {
-	return &Command{Command: cmd, Matchers: matchers}
+	return &Command{Command: cmd, Options: opt, Matchers: matchers}
 }
 
 // Respond is a command that is directed toward the bot
