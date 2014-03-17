@@ -1,6 +1,10 @@
 package plugin
 
-import "regexp"
+import (
+	"regexp"
+
+	"github.com/j6n/noye/util"
+)
 
 // MatchFn is a function that takes a string and
 // returns whether it matched and the matched string
@@ -31,6 +35,10 @@ type StringMatcher struct{ BaseMatcher }
 // RegexMatcher uses a regex to create a matcher
 type RegexMatcher struct{ BaseMatcher }
 
+// AuthMatcher checks whether the input is authorized
+// This is used for matching against nicks
+type AuthMatcher struct{ BaseMatcher }
+
 // SimpleMatch returns a new SimpleMatcher
 func SimpleMatch(in string) SimpleMatcher {
 	return SimpleMatcher{BaseMatcher{StringMatch(in, false).Fn}}
@@ -57,5 +65,15 @@ func RegexMatch(re *regexp.Regexp, capture bool) RegexMatcher {
 		}
 
 		return
+	}}}
+}
+
+// AuthMatch returns a new AuthMatcher
+func AuthMatch(whitelist []string) AuthMatcher {
+	return AuthMatcher{BaseMatcher{func(nick string) (string, bool) {
+		if !util.Contains(nick, whitelist...) {
+			return nick, false
+		}
+		return "", true
 	}}}
 }
