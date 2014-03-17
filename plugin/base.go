@@ -15,18 +15,15 @@ type Base struct {
 	name  string
 	input chan noye.Message
 
-	Disabled map[string]bool
-	Handler  func(noye.Message)
+	Handlers []*Handler
 }
 
 // New returns a new Base plugin
-func New(name string, cmds ...*Command) *Base {
+func New(name string, handlers ...*Handler) *Base {
 	base := &Base{
-		name:  name,
-		input: make(chan noye.Message),
-
-		Disabled: make(map[string]bool),
-		Handler:  func(noye.Message) {},
+		name:     name,
+		input:    make(chan noye.Message),
+		Handlers: handlers,
 	}
 
 	go base.process()
@@ -41,17 +38,6 @@ func (b *Base) Listen() chan noye.Message {
 // Name returns the plugins name
 func (b *Base) Name() string {
 	return b.name
-}
-
-// Status returns whether the input is disabled
-func (b *Base) Status(ch string) bool {
-	s, ok := b.Disabled[ch]
-	return s && ok
-}
-
-// SetStatus disables the input
-func (b *Base) SetStatus(ch string, status bool) {
-	b.Disabled[ch] = status
 }
 
 // Hook sets the noye.Bot reference
@@ -71,12 +57,24 @@ func (b *Base) Error(msg noye.Message, text string, err error) {
 
 func (b *Base) process() {
 	for msg := range b.input {
-		defer func() {
-			if err := recover(); err != nil {
-				log.Println("recover!", b.Name(), "from", err)
+		for _, cmd := range b.Handlers {
+			defer func() {
+				if err := recover(); err != nil {
+					log.Printf("recover! %s/%s from %s\n", b.Name(), cmd.Command.Command, err)
+				}
+			}()
+			if !cmd.AcceptsFrom(msg.From) {
+				b.Reply(msg, "You can't do this command.")
+				continue
 			}
-		}()
-
-		b.Handler(msg)
+			if cmd.Match(msg) {
+				cmd.Handle(cmd.Command, msg)
+			}
+		}
 	}
+}
+
+type Handler struct {
+	*Command
+	Handle func(*Command, noye.Message)
 }

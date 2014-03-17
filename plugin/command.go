@@ -41,25 +41,23 @@ func Respond(cmd string, opt Options, matchers ...Matcher) *Command {
 	return &Command{Command: cmd, Options: opt, Matchers: matchers}
 }
 
+// AcceptsFrom checks to see if nick is whitelisted/blacklisted
+func (c *Command) AcceptsFrom(nick string) bool {
+	// if either list is empty, then we'll accept them
+	if len(c.Options.Whitelist) == 0 && len(c.Options.Blacklist) == 0 {
+		return true
+	}
+
+	// check the whitelist and blacklist to see if the nick is on them
+	return util.Contains(nick, c.Options.Whitelist...) &&
+		!util.Contains(nick, c.Options.Blacklist...)
+}
+
 // Match matches the command to the noye.Message
 // returning whether it matched or not
 func (c *Command) Match(msg noye.Message) bool {
 	// reset the results
 	c.results = make([]string, 0)
-
-	// check the whitelist to see if the nick is on it
-	if len(c.Options.Whitelist) > 0 &&
-		!util.Contains(msg.From, c.Options.Whitelist...) {
-		// report nick isn't on the whitelist
-		return false
-	}
-
-	// check the blacklist to see if the nick is on it
-	if len(c.Options.Blacklist) > 0 &&
-		util.Contains(msg.From, c.Options.Blacklist...) {
-		// report nick is on the blacklist
-		return false
-	}
 
 	// split text in parts so we can drop nick/cmd if needed
 	parts := strings.Fields(msg.Text)

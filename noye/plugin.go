@@ -5,6 +5,4 @@ type Plugin interface {
 	Hook(Bot)
 	Listen() chan Message
 	Name() string
-	Status(string) bool
-	SetStatus(string, bool)
 }

@@ -10,10 +10,13 @@ import (
 )
 
 func TestCommand(t *testing.T) {
-	// helper for less typing
-	// it builds a simple message and matches it to the command
+	// helpers for less typing
+	newMessage := func(s ...string) noye.Message {
+		return noye.Message{"museun", "#museun", strings.Join(s, " ")}
+	}
+
 	match := func(cmd *Command, s ...string) bool {
-		return cmd.Match(noye.Message{"museun", "#museun", strings.Join(s, " ")})
+		return cmd.Match(newMessage(s...))
 	}
 
 	newCommand := func(cmd string, matchers ...Matcher) *Command {
@@ -159,12 +162,13 @@ func TestCommand(t *testing.T) {
 
 		Convey("react to a whitelist", func() {
 			cmd := newCommand("foo", NoopMatcher())
-			cmd.Options.Whitelist = []string{"museun"}
+			msg := newMessage("foo this is a test")
 
-			So(match(cmd, "foo this is a test"), ShouldBeTrue)
+			cmd.Options = Options{Whitelist: []string{"museun"}}
+			So(cmd.AcceptsFrom(msg.From), ShouldBeTrue)
 
-			cmd.Options.Whitelist = []string{"museun1"}
-			So(match(cmd, "foo this is a test"), ShouldBeFalse)
+			cmd.Options = Options{Blacklist: []string{"museun"}}
+			So(cmd.AcceptsFrom(msg.From), ShouldBeFalse)
 		})
 	})
 }
