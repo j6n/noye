@@ -20,7 +20,7 @@ func New() *Admin {
 }
 
 func (a *Admin) process() {
-	chanMatcher := plugin.RegexMatcher(regexp.MustCompile("(#.*?)$"), true)
+	chanMatcher := plugin.RegexMatch(regexp.MustCompile("(#.*?)$"), true)
 
 	join := plugin.Respond("join", plugin.Options{Each: true}, chanMatcher)
 	part := plugin.Respond("part", plugin.Options{Each: true}, chanMatcher)
