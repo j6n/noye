@@ -11,4 +11,5 @@ type IrcMessage struct {
 	Command string
 	Args    []string
 	Text    string
+	Raw     string
 }
