@@ -9,7 +9,8 @@ import (
 // parse takes a raw string and returns an IrcMessage
 // by parsing it somewhat accordingly to the IRC RFC
 func parse(raw string) noye.IrcMessage {
-	msg := noye.IrcMessage{}
+	msg := noye.IrcMessage{Raw: raw}
+
 	// :source command [args] :message
 	if raw[0] == ':' {
 		if i := strings.Index(raw, " "); i >= -1 {
