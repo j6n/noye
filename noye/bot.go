@@ -13,6 +13,4 @@ type Bot interface {
 
 	Wait() <-chan struct{}
 	Ready() <-chan struct{}
-
-	AddPlugin(plugin Plugin)
 }

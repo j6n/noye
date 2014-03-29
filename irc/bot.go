@@ -9,35 +9,20 @@ import (
 	"github.com/j6n/noye/noye"
 )
 
-// do I really need this?
-type signal struct {
-	signal chan struct{}
-	once   sync.Once
-}
-
-func newSignal() signal { return signal{signal: make(chan struct{})} }
-
-func (s signal) yield() <-chan struct{} { return s.signal }
-
-func (s signal) close() { s.once.Do(func() { close(s.signal) }) }
-
 // Bot encapsulates all the parts to run a bot
 type Bot struct {
 	conn noye.Conn
 	once sync.Once
 
-	plugins []noye.Plugin
-
-	stop, ready signal
+	stop, ready chan struct{}
 }
 
 // New takes a noye.Conn and returns a new Bot
 func New(conn noye.Conn) *Bot {
 	bot := &Bot{
-		conn:    conn,
-		plugins: make([]noye.Plugin, 0),
-		stop:    newSignal(),
-		ready:   newSignal(),
+		conn:  conn,
+		stop:  make(chan struct{}),
+		ready: make(chan struct{}),
 	}
 
 	return bot
@@ -78,27 +63,20 @@ func (b *Bot) Part(t string) {
 
 // Wait returns a channel that'll be closed when the bot dies
 func (b *Bot) Wait() <-chan struct{} {
-	return b.stop.yield()
+	return b.stop
 }
 
 // Ready returns a channel that'll be closed when the bot is ready
 func (b *Bot) Ready() <-chan struct{} {
-	return b.ready.yield()
+	return b.ready
 }
 
 // Close attempts to close the bots connection
 func (b *Bot) Close() {
 	b.once.Do(func() {
 		b.conn.Close()
-		b.stop.close()
+		close(b.stop)
 	})
-}
-
-// AddPlugin adds the plugin to the bots internal list
-// It also adds a reference for the bot to the plugin
-func (b *Bot) AddPlugin(plugin noye.Plugin) {
-	plugin.Hook(b)
-	b.plugins = append(b.plugins, plugin)
 }
 
 func (b *Bot) readLoop() {
@@ -128,7 +106,7 @@ func (b *Bot) handle(line string) {
 		b.Send("PONG %s", msg.Text)
 	case "001":
 		// BUG: this should be using a sync.Once
-		b.ready.close()
+		close(b.ready)
 	case "PRIVMSG":
 		out := noye.Message{
 			From: strings.Split(msg.Source, "!")[0],
@@ -140,11 +118,6 @@ func (b *Bot) handle(line string) {
 			out.Target = msg.Args[0]
 		default:
 			out.Target = out.From
-		}
-
-		// dispatch to plugins
-		for _, plugin := range b.plugins {
-			plugin.Listen() <- out
 		}
 	}
 

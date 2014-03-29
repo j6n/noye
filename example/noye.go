@@ -5,9 +5,6 @@ import (
 	"runtime"
 
 	"github.com/j6n/noye/irc"
-
-	// plugins
-	"github.com/j6n/noye/plugin/admin"
 )
 
 func init() {
@@ -16,8 +13,6 @@ func init() {
 
 func main() {
 	bot := irc.New(&irc.Connection{})
-
-	bot.AddPlugin(admin.New())
 
 	if err := bot.Dial("irc.quakenet.org:6667", "noye", "museun"); err != nil {
 		log.Fatalln(err)
