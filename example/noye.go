@@ -1,11 +1,9 @@
 package main
 
 import (
-	"log"
 	"os"
 	"os/signal"
 	"runtime"
-
 	"github.com/j6n/noye/irc"
 )
 
@@ -18,16 +16,15 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 
-	// set logger to info
-	//irc.LoggerLevel(logger.Info)
+	//irc.LoggerFormatter(&logger.JsonFormatter{true})
 
 	bot := irc.New(&irc.Connection{})
-
 	if err := bot.Dial("irc.quakenet.org:6667", "noye", "museun"); err != nil {
-		log.Fatalln(err)
+		return
 	}
 
 	go func() {
+		// wait for the ctrl-c
 		<-quit
 		// send the quit
 		bot.Quit()
@@ -39,5 +36,4 @@ func main() {
 
 	// wait for the close signal
 	<-bot.Wait()
-	log.Println("done")
 }

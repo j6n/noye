@@ -2,6 +2,7 @@ package irc
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 
@@ -58,38 +59,37 @@ func (b *Bot) Send(f string, a ...interface{}) {
 
 // Privmsg sends the 'msg' to the target as a privmsg
 func (b *Bot) Privmsg(t, msg string) {
-	log.WithField("target", t).Info("sending message: %s", msg)
+	log.WithFields(logger.Fields{"target": t, "cmd": "privmsg"}).Info("sending message: %s", msg)
 	b.Send("PRIVMSG %s :%s", t, msg)
 }
 
 // Join attempts to join the target
 func (b *Bot) Join(t string) {
-	log.WithField("target", t).Info("joining")
+	log.WithFields(logger.Fields{"target": t, "cmd": "join"}).Info("joining")
 	b.Send("JOIN %s", t)
 }
 
 // Part attempts to leave the target
 func (b *Bot) Part(t string) {
-	log.WithField("target", t).Info("leaving")
+	log.WithFields(logger.Fields{"target": t, "cmd": "part"}).Info("leaving")
 	b.Send("PART %s", t)
 }
 
 // Quit closes the connection
 func (b *Bot) Quit() {
+	log.WithField("cmd", "quit").Info("bye")
 	b.Send("QUIT %s", "bye")
 }
 
 // Wait returns a channel that'll be closed when the bot dies
 func (b *Bot) Wait() <-chan struct{} {
 	log.Debug("waiting to stop")
-
 	return b.stop.Wait()
 }
 
 // Ready returns a channel that'll be closed when the bot is ready
 func (b *Bot) Ready() <-chan struct{} {
 	log.Debug("waiting to be ready")
-
 	return b.ready.Wait()
 }
 
@@ -124,14 +124,13 @@ func (b *Bot) readLoop() {
 
 func (b *Bot) handle(line string) {
 	msg := parse(line)
-	//	log.WithField("handle", msg.Command).Debug(msg.Raw)
-
 	switch msg.Command {
 	case "PING":
+		log.WithField("cmd", "ping").Debug(msg.Text)
 		b.Send("PONG %s", msg.Text)
 	case "001":
-		b.ready.Close()
 		log.Info("connected")
+		b.ready.Close()
 	case "PRIVMSG":
 		out := noye.Message{
 			From: strings.Split(msg.Source, "!")[0],
@@ -144,20 +143,43 @@ func (b *Bot) handle(line string) {
 		default:
 			out.Target = out.From
 		}
+
+		fields := logger.Fields{
+			"cmd":  "recv",
+			"from": out.From,
+		}
+
+		if out.Target == msg.Args[0] {
+			fields["type"] = "public"
+			fields["target"] = out.Target
+		} else {
+			fields["type"] = "private"
+		}
+
+		log.WithFields(fields).Info(out.Text)
 	}
 
 	// default should delegate to any extra eventsn
 }
 
 func init() {
-	log.Level = logger.Debug
-	//log.Formatter = &logger.JsonFormatter{true}
+	switch os.Getenv("NOYE_ENV") {
+	case "TEST":
+		log.Formatter = &logger.JsonFormatter{true}
+	case "DEV":
+		log.Formatter = &logger.TextFormatter{}
+		log.Formatter = logger.Debug
+	case "DIST":
+		log.Formatter = &logger.JsonFormatter{false}
+	}
 }
 
+// LoggerLevel sets the bots logger level
 func LoggerLevel(level logger.Level) {
 	log.Level = level
 }
 
+// LoggerFormatter sets the bots logger formatter
 func LoggerFormatter(format logger.Formatter) {
 	log.Formatter = format
 }
