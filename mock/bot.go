@@ -7,6 +7,7 @@ type MockBot struct {
 	PrivmsgFn func(string, string)
 	JoinFn    func(string)
 	PartFn    func(string)
+	QuitFn    func()
 }
 
 // NewMockBot returns a new MockBot with the fns set to no-ops
@@ -16,6 +17,7 @@ func NewMockBot() *MockBot {
 		func(string, string) {},
 		func(string) {},
 		func(string) {},
+		func() {},
 	}
 }
 
@@ -36,6 +38,9 @@ func (m *MockBot) Join(target string) { m.JoinFn(target) }
 
 // Part delegates to PartFn
 func (m *MockBot) Part(target string) { m.PartFn(target) }
+
+// Quit delegates to QuitFn
+func (m *MockBot) Part() { m.QuitFn() }
 
 // Wait is just here for the interface
 func (m *MockBot) Wait() <-chan struct{} { return nil }
