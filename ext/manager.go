@@ -1,20 +1,20 @@
 package ext
 
 import (
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"regexp"
 
 	"github.com/j6n/logger"
-	"github.com/j6n/noye/irc"
 	"github.com/j6n/noye/noye"
 	"github.com/robertkrimen/otto"
 )
 
-var log = irc.Logger
+var log *logger.Logger
 
 type Script struct {
-	Name, Path string
+	Name, Path, Source string
 
 	commands  map[*regexp.Regexp]scriptFunc
 	callbacks map[string][]scriptFunc
@@ -30,7 +30,10 @@ type Manager struct {
 	proxy   *ProxyBot
 }
 
-func New(ctx noye.Bot) *Manager {
+func New(ctx noye.Bot, logger *logger.Logger) *Manager {
+	if log == nil {
+		log = logger
+	}
 	return &Manager{make(map[string]*Script), ctx, NewProxyBot(ctx)}
 }
 
@@ -96,40 +99,34 @@ func (m *Manager) Listen(msg noye.IrcMessage) {
 	}
 }
 
-func copyFields(origin, input logger.Fields) logger.Fields {
-	out := logger.Fields{}
-	for k, v := range origin {
-		out[k] = v
+func (m *Manager) Load(path string) error {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		log.WithField("plugin", path).Error(err)
+		return err
 	}
 
-	for k, v := range input {
-		out[k] = v
-	}
-
-	return out
+	return m.load(string(data), path)
 }
 
-const base = `
-noye = {
-	"reply": function() {
-		_core_reply.apply(null, arguments);
-	},
-	"send": function() {
-		_core_send.apply(null, arguments);
-	},
-	"raw": function() {
-		_core_raw.apply(null, arguments);
-	},
-};
-`
+func (m *Manager) Reload(name string) error {
+	if script, ok := m.scripts[name]; ok {
+		delete(m.scripts, name)
+		return m.load(script.Source, script.Path)
+	}
+
+	// script not loaded
+	return fmt.Errorf("%s is not loaded", name)
+}
 
 func (m *Manager) load(source, path string) error {
 	name := filepath.Base(path)
 	ctx := otto.New()
 
 	script := &Script{
-		Name: name,
-		Path: path,
+		Name:   name,
+		Path:   path,
+		Source: source,
 
 		commands:  make(map[*regexp.Regexp]scriptFunc),
 		callbacks: make(map[string][]scriptFunc),
@@ -140,8 +137,8 @@ func (m *Manager) load(source, path string) error {
 	// init proxy bot
 	ctx.Run(base)
 	ctx.Set("_core_reply", m.proxy.Reply)
-	ctx.Set("_core_send", m.proxy.Send)
-	ctx.Set("_core_raw", m.proxy.Raw)
+	ctx.Set("_core_bot", m.proxy)
+	ctx.Set("_core_load", m.Load)
 
 	fields := logger.Fields{
 		"script": name,
@@ -208,12 +205,32 @@ func (m *Manager) load(source, path string) error {
 	return nil
 }
 
-func (m *Manager) Load(path string) error {
-	data, err := ioutil.ReadFile(path)
-	if err != nil {
-		log.WithField("plugin", path).Error(err)
-		return err
+func copyFields(origin, input logger.Fields) logger.Fields {
+	out := logger.Fields{}
+	for k, v := range origin {
+		out[k] = v
 	}
 
-	return m.load(string(data), path)
+	for k, v := range input {
+		out[k] = v
+	}
+
+	return out
 }
+
+const base = `
+noye = {
+	"reply": function() {
+		_core_reply.apply(null, arguments);
+	},	
+	"bot": function() {
+		_core_bot.apply(null, arguments);
+	},
+};
+
+core = {
+	"load": function() {
+		_core_load.apply(null, arguments);
+	},
+};
+`

@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/j6n/logger"
+	"github.com/j6n/noye/ext"
 	"github.com/j6n/noye/noye"
 )
 
@@ -18,6 +19,8 @@ type Bot struct {
 	conn noye.Conn
 	once sync.Once
 
+	manager *ext.Manager
+
 	stop, ready *Signal
 }
 
@@ -28,6 +31,8 @@ func New(conn noye.Conn) *Bot {
 		stop:  NewSignal(),
 		ready: NewSignal(),
 	}
+
+	bot.manager = ext.New(bot, log)
 
 	log.Debug("created a new bot")
 	return bot
@@ -60,7 +65,7 @@ func (b *Bot) Send(f string, a ...interface{}) {
 
 // Privmsg sends the 'msg' to the target as a privmsg
 func (b *Bot) Privmsg(t, msg string) {
-	log.WithFields(logger.Fields{"target": t, "cmd": "privmsg"}).Info("sending message: %s", msg)
+	log.WithFields(logger.Fields{"target": t, "cmd": "privmsg", "data": msg}).Info("sending message")
 	b.Send("PRIVMSG %s :%s", t, msg)
 }
 
@@ -104,6 +109,11 @@ func (b *Bot) Close() {
 	})
 }
 
+// Manager returns the script manager
+func (b *Bot) Manager() noye.Manager {
+	return b.manager
+}
+
 func (b *Bot) readLoop() {
 	defer func() { b.Close() }()
 
@@ -125,6 +135,8 @@ func (b *Bot) readLoop() {
 
 func (b *Bot) handle(line string) {
 	msg := parse(line)
+
+	// built-in switch
 	switch msg.Command {
 	case "PING":
 		log.WithField("cmd", "ping").Debug(msg.Text)
@@ -133,34 +145,39 @@ func (b *Bot) handle(line string) {
 		log.Info("connected")
 		b.ready.Close()
 	case "PRIVMSG":
-		out := noye.Message{
-			From: strings.Split(msg.Source, "!")[0],
-			Text: msg.Text,
-		}
-
-		switch msg.Args[0][0] {
-		case '#', '&':
-			out.Target = msg.Args[0]
-		default:
-			out.Target = out.From
-		}
-
-		fields := logger.Fields{
-			"cmd":  "recv",
-			"from": out.From,
-		}
-
-		if out.Target == msg.Args[0] {
-			fields["type"] = "public"
-			fields["target"] = out.Target
-		} else {
-			fields["type"] = "private"
-		}
-
-		log.WithFields(fields).Info(out.Text)
+		out := ircToMsg(msg)
+		b.manager.Respond(out)
 	}
 
-	// default should delegate to any extra eventsn
+	// default listeners
+	b.manager.Listen(msg)
+}
+
+func ircToMsg(msg noye.IrcMessage) noye.Message {
+	out := noye.Message{
+		From: strings.Split(msg.Source, "!")[0],
+		Text: msg.Text,
+	}
+
+	switch msg.Args[0][0] {
+	case '#', '&':
+		out.Target = msg.Args[0]
+	default:
+		out.Target = out.From
+	}
+
+	fields := logger.Fields{
+		"cmd":  "recv",
+		"from": out.From,
+	}
+
+	if out.Target == msg.Args[0] {
+		fields["type"] = "public"
+		fields["target"] = out.Target
+	} else {
+		fields["type"] = "private"
+	}
+	return out
 }
 
 func init() {

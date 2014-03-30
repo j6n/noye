@@ -15,4 +15,6 @@ type Bot interface {
 
 	Wait() <-chan struct{}
 	Ready() <-chan struct{}
+
+	Manager() Manager
 }

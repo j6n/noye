@@ -10,13 +10,12 @@ import (
 )
 
 func TestManager(t *testing.T) {
-	log.Formatter = &logger.JsonFormatter{true}
-
 	ctx := mock.NewMockBot()
 	ctx.PrivmsgFn = func(target, msg string) {
 		t.Logf("PRIVMSG >> %s: %s\n", target, msg)
 	}
-	manager := New(ctx)
+	manager := New(ctx, logger.New())
+	log.Formatter = &logger.JsonFormatter{true}
 
 	Convey("Given a manager", t, func() {
 		source := `
