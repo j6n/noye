@@ -40,7 +40,7 @@ func (m *MockBot) Join(target string) { m.JoinFn(target) }
 func (m *MockBot) Part(target string) { m.PartFn(target) }
 
 // Quit delegates to QuitFn
-func (m *MockBot) Part() { m.QuitFn() }
+func (m *MockBot) Quit() { m.QuitFn() }
 
 // Wait is just here for the interface
 func (m *MockBot) Wait() <-chan struct{} { return nil }
