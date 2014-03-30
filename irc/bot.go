@@ -11,6 +11,7 @@ import (
 )
 
 var log = logger.New()
+var Logger = log
 
 // Bot encapsulates all the parts to run a bot
 type Bot struct {
@@ -168,7 +169,7 @@ func init() {
 		log.Formatter = &logger.JsonFormatter{true}
 	case "DEV":
 		log.Formatter = &logger.TextFormatter{}
-		log.Formatter = logger.Debug
+		log.Level = logger.Debug
 	case "DIST":
 		log.Formatter = &logger.JsonFormatter{false}
 	}
