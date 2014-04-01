@@ -32,25 +32,32 @@ HttpClient.prototype.get = function() {
 
 func (m *Manager) defaults(vm *otto.Otto) {
 	if err := vm.Set("_core_reply", m.proxy.Reply); err != nil {
-		log.WithField("where", "core_reply").Error(err)
+		// TODO log error
+		err = nil
 		return
 	}
+
 	if err := vm.Set("_core_bot", m.proxy); err != nil {
-		log.WithField("where", "core_bot").Error(err)
+		// TODO log error
+		err = nil
 		return
 	}
+
 	if err := vm.Set("_core_load", m.Load); err != nil {
-		log.WithField("where", "core_load").Error(err)
+		// TODO log error
+		err = nil
 		return
 	}
 
 	if err := vm.Set("_httpclient_get", http_get); err != nil {
-		log.WithField("where", "http_get").Error(err)
+		// TODO log error
+		err = nil
 		return
 	}
-	_, err := vm.Run(base)
-	if err != nil {
-		log.WithField("where", "vm_run").Error(err)
+
+	if _, err := vm.Run(base); err != nil {
+		// TODO log error
+		err = nil
 	}
 }
 
@@ -99,29 +106,22 @@ func http_get(args ...string) string {
 	url := strings.Trim(args[0], `"`)
 	client := &http.Client{}
 
-	log.Println("making new get for:", url)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		log.WithField("where", "new").Error(err)
 		return ""
 	}
 
-	log.Println("doing req")
 	resp, err := client.Do(req)
 	if err != nil {
-		log.WithField("where", "do").Error(err)
 		return ""
 	}
 
 	defer resp.Body.Close()
 	buf := new(bytes.Buffer)
 
-	log.Println("copying body")
 	if _, err := io.Copy(buf, resp.Body); err != nil {
-		log.WithField("where", "copy").Error(err)
 		return ""
 	}
 
-	log.Println("returning string")
 	return buf.String()
 }

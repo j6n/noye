@@ -3,8 +3,6 @@ package ext
 import (
 	"testing"
 	"time"
-
-	"github.com/j6n/logger"
 	"github.com/j6n/noye/mock"
 	"github.com/j6n/noye/noye"
 	"github.com/robertkrimen/otto"
@@ -13,8 +11,7 @@ import (
 
 func TestManager(t *testing.T) {
 	ctx := mock.NewMockBot()
-	manager := New(ctx, logger.New())
-	log.Formatter = &logger.JsonFormatter{true}
+	manager := New(ctx)
 	ctx.PrivmsgFn = func(target, msg string) {
 		t.Logf("PRIVMSG >> %s: %s\n", target, msg)
 	}
