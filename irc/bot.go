@@ -2,7 +2,6 @@ package irc
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 	"github.com/j6n/noye/ext"
 	"github.com/j6n/noye/noye"
@@ -124,20 +123,4 @@ func (b *Bot) handle(line string) {
 
 	// default listeners
 	b.manager.Listen(msg)
-}
-
-func ircToMsg(msg noye.IrcMessage) noye.Message {
-	out := noye.Message{
-		From: strings.Split(msg.Source, "!")[0],
-		Text: msg.Text,
-	}
-
-	switch msg.Args[0][0] {
-	case '#', '&':
-		out.Target = msg.Args[0]
-	default:
-		out.Target = out.From
-	}
-
-	return out
 }

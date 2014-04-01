@@ -6,8 +6,6 @@ import (
 	"github.com/j6n/noye/noye"
 )
 
-// parse takes a raw string and returns an IrcMessage
-// by parsing it somewhat accordingly to the IRC RFC
 func parse(raw string) noye.IrcMessage {
 	msg := noye.IrcMessage{Raw: raw}
 
@@ -32,4 +30,20 @@ func parse(raw string) noye.IrcMessage {
 	}
 
 	return msg
+}
+
+func ircToMsg(msg noye.IrcMessage) noye.Message {
+	out := noye.Message{
+		From: strings.Split(msg.Source, "!")[0],
+		Text: msg.Text,
+	}
+
+	switch msg.Args[0][0] {
+	case '#', '&':
+		out.Target = msg.Args[0]
+	default:
+		out.Target = out.From
+	}
+
+	return out
 }
