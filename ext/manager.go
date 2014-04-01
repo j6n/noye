@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"regexp"
+
 	"github.com/j6n/noye/noye"
 	"github.com/robertkrimen/otto"
 )
@@ -115,43 +116,38 @@ func (m *Manager) load(source, path string) error {
 		return otto.FalseValue()
 	})
 
-	ctx.Set("respond", func(call otto.FunctionCall) otto.Value {
-		if len(call.ArgumentList) < 2 || !call.ArgumentList[0].IsString() || !call.ArgumentList[1].IsFunction() {
-			return otto.FalseValue()
-		}
-
-		str, fn := call.ArgumentList[0].String(), call.ArgumentList[1]
-		wrap := func(env otto.Value) {
-			if _, err := fn.Call(fn, env); err != nil {
-				// TODO log error
-				err = nil
+	build := func(path string) func(otto.FunctionCall) otto.Value {
+		ret := func(call otto.FunctionCall) otto.Value {
+			if len(call.ArgumentList) < 2 || !call.ArgumentList[0].IsString() || !call.ArgumentList[1].IsFunction() {
+				return otto.FalseValue()
 			}
-		}
 
-		re, err := regexp.Compile(str)
-		if err != nil {
-			return otto.FalseValue()
-		}
-
-		script.commands[re] = wrap
-		return otto.TrueValue()
-	})
-
-	ctx.Set("listen", func(call otto.FunctionCall) otto.Value {
-		if len(call.ArgumentList) < 2 || !call.ArgumentList[0].IsString() || !call.ArgumentList[1].IsFunction() {
-			return otto.FalseValue()
-		}
-
-		cmd, fn := call.ArgumentList[0].String(), call.ArgumentList[1]
-		wrap := func(env otto.Value) {
-			if _, err := fn.Call(fn, env); err != nil {
-				// TODO log error
-				err = nil
+			input, fn := call.ArgumentList[0].String(), call.ArgumentList[1]
+			wrap := func(env otto.Value) {
+				if _, err := fn.Call(fn, env); err != nil {
+					// TODO log error
+					err = nil
+				}
 			}
+
+			switch path {
+			case "respond":
+				re, err := regexp.Compile(input)
+				if err != nil {
+					return otto.FalseValue()
+				}
+
+				script.commands[re] = wrap
+			case "listen":
+				script.callbacks[input] = append(script.callbacks[input], wrap)
+			}
+			return otto.TrueValue()
 		}
-		script.callbacks[cmd] = append(script.callbacks[cmd], wrap)
-		return otto.TrueValue()
-	})
+		return ret
+	}
+
+	ctx.Set("respond", build("respond"))
+	ctx.Set("listen", build("listen"))
 
 	if _, err := ctx.Run(source); err != nil {
 		return err

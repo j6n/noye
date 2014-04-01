@@ -2,10 +2,8 @@ package ext
 
 import (
 	"testing"
-	"time"
 	"github.com/j6n/noye/mock"
 	"github.com/j6n/noye/noye"
-	"github.com/robertkrimen/otto"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -55,14 +53,4 @@ func TestManager(t *testing.T) {
 		Target: "#noye",
 		Text:   "!ip",
 	})
-
-	<-time.After(5 * time.Second)
-}
-
-func TestFoo(t *testing.T) {
-	vm := otto.New()
-	if _, err := vm.Run(`console.log(encodeURI("http://ifconfig.me/ip"))`); err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
 }
