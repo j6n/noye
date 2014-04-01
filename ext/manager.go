@@ -35,7 +35,7 @@ func (m *Manager) Respond(msg noye.Message) {
 			}
 
 			go func(val otto.Value, fn scriptFunc) {
-				defer func() { recover() }()
+				defer func() { _ = recover() }()
 				fn(val)
 			}(val, fn)
 		}
@@ -57,7 +57,7 @@ func (m *Manager) Listen(msg noye.IrcMessage) {
 
 		for _, cmd := range cmds {
 			go func(val otto.Value, fn scriptFunc) {
-				defer func() { recover() }()
+				defer func() { _ = recover() }()
 				cmd(val)
 			}(val, cmd)
 		}
@@ -95,7 +95,7 @@ func (m *Manager) load(source, path string) error {
 	// init proxy bot
 	m.defaults(ctx)
 
-	ctx.Set("log", func(call otto.FunctionCall) otto.Value {
+	_ = ctx.Set("log", func(call otto.FunctionCall) otto.Value {
 		if len(call.ArgumentList) == 1 && call.ArgumentList[0].IsString() {
 			// TODO log bot stuff here
 			return otto.TrueValue()
@@ -132,8 +132,8 @@ func (m *Manager) load(source, path string) error {
 		}
 	}
 
-	ctx.Set("respond", build("respond"))
-	ctx.Set("listen", build("listen"))
+	_ = ctx.Set("respond", build("respond"))
+	_ = ctx.Set("listen", build("listen"))
 
 	if _, err := ctx.Run(source); err != nil {
 		return err

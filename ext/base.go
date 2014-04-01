@@ -92,7 +92,7 @@ func httpPost(args ...string) string {
 		return ""
 	}
 
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	buf := new(bytes.Buffer)
 
 	if _, err := io.Copy(buf, resp.Body); err != nil {
@@ -116,7 +116,7 @@ func httpGet(args ...string) string {
 		return ""
 	}
 
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	buf := new(bytes.Buffer)
 
 	if _, err := io.Copy(buf, resp.Body); err != nil {

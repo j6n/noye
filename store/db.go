@@ -34,7 +34,9 @@ func GetSession() (*gorp.DbMap, error) {
 	if db == nil {
 		db = &gorp.DbMap{Db: sqlite, Dialect: gorp.SqliteDialect{}}
 		db.TraceOn("[gorp]", log.New(os.Stdout, "noye:", log.Lmicroseconds))
-		db.CreateTablesIfNotExists()
+		if err = db.CreateTablesIfNotExists(); err != nil {
+			return db, err
+		}
 	}
 
 	return db, err

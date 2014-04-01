@@ -5,6 +5,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+
 	"github.com/j6n/noye/irc"
 )
 
@@ -60,7 +61,7 @@ func getFiles(base string) <-chan string {
 			return nil
 		}
 
-		filepath.Walk(base, walker)
+		_ = filepath.Walk(base, walker)
 		close(scripts)
 	}()
 
