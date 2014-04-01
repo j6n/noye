@@ -10,17 +10,6 @@ import (
 	"github.com/robertkrimen/otto"
 )
 
-type Script struct {
-	Name, Path, Source string
-
-	commands  map[*regexp.Regexp]scriptFunc
-	callbacks map[string][]scriptFunc
-
-	context *otto.Otto
-}
-
-type scriptFunc func(otto.Value)
-
 type Manager struct {
 	scripts map[string]*Script
 	proxy   *ProxyBot
@@ -92,18 +81,10 @@ func (m *Manager) Reload(name string) error {
 
 func (m *Manager) load(source, path string) error {
 	name := filepath.Base(path)
-	ctx := otto.New()
+	script := newScript(name, path, source)
 
-	script := &Script{
-		Name:   name,
-		Path:   path,
-		Source: source,
-
-		commands:  make(map[*regexp.Regexp]scriptFunc),
-		callbacks: make(map[string][]scriptFunc),
-
-		context: ctx,
-	}
+	// copy pointer
+	ctx := script.context
 
 	// init proxy bot
 	m.defaults(ctx)
@@ -117,7 +98,7 @@ func (m *Manager) load(source, path string) error {
 	})
 
 	build := func(path string) func(otto.FunctionCall) otto.Value {
-		ret := func(call otto.FunctionCall) otto.Value {
+		return func(call otto.FunctionCall) otto.Value {
 			if len(call.ArgumentList) < 2 || !call.ArgumentList[0].IsString() || !call.ArgumentList[1].IsFunction() {
 				return otto.FalseValue()
 			}
@@ -143,7 +124,6 @@ func (m *Manager) load(source, path string) error {
 			}
 			return otto.TrueValue()
 		}
-		return ret
 	}
 
 	ctx.Set("respond", build("respond"))
