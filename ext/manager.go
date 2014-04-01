@@ -6,9 +6,12 @@ import (
 	"path/filepath"
 	"regexp"
 
+	"github.com/j6n/noye/logger"
 	"github.com/j6n/noye/noye"
 	"github.com/robertkrimen/otto"
 )
+
+var log = logger.Get()
 
 // Manager holds a bunch of scripts and a safe proxy to the bot
 type Manager struct {
@@ -34,10 +37,7 @@ func (m *Manager) Respond(msg noye.Message) {
 				continue
 			}
 
-			go func(val otto.Value, fn scriptFunc) {
-				defer func() { _ = recover() }()
-				fn(val)
-			}(val, fn)
+			go safeRun(val, fn, script.Name)
 		}
 	}
 }
@@ -56,10 +56,7 @@ func (m *Manager) Listen(msg noye.IrcMessage) {
 		}
 
 		for _, cmd := range cmds {
-			go func(val otto.Value, fn scriptFunc) {
-				defer func() { _ = recover() }()
-				cmd(val)
-			}(val, cmd)
+			go safeRun(val, cmd, script.Name)
 		}
 	}
 }
@@ -95,13 +92,16 @@ func (m *Manager) load(source, path string) error {
 	// init proxy bot
 	m.defaults(ctx)
 
-	_ = ctx.Set("log", func(call otto.FunctionCall) otto.Value {
+	if err := ctx.Set("log", func(call otto.FunctionCall) otto.Value {
 		if len(call.ArgumentList) == 1 && call.ArgumentList[0].IsString() {
-			// TODO log bot stuff here
+			log.Infof("(%s) %s\n", name, call.Argument(0).String())
 			return otto.TrueValue()
 		}
 		return otto.FalseValue()
-	})
+	}); err != nil {
+		log.Errorf("(%s) setting log: %s", name, err)
+		return err
+	}
 
 	build := func(path string) func(otto.FunctionCall) otto.Value {
 		return func(call otto.FunctionCall) otto.Value {
@@ -112,8 +112,7 @@ func (m *Manager) load(source, path string) error {
 			input, fn := call.ArgumentList[0].String(), call.ArgumentList[1]
 			wrap := func(env otto.Value) {
 				if _, err := fn.Call(fn, env); err != nil {
-					// TODO log error
-					err = nil
+					log.Errorf("(%s,%s,%s) calling fn: %s\n", name, path, input, err)
 				}
 			}
 
@@ -121,6 +120,7 @@ func (m *Manager) load(source, path string) error {
 			case "respond":
 				re, err := regexp.Compile(input)
 				if err != nil {
+					log.Errorf("(%s,%s,%s) compiling re: %s\n", name, path, input, err)
 					return otto.FalseValue()
 				}
 
@@ -132,13 +132,31 @@ func (m *Manager) load(source, path string) error {
 		}
 	}
 
-	_ = ctx.Set("respond", build("respond"))
-	_ = ctx.Set("listen", build("listen"))
+	if err := ctx.Set("respond", build("respond")); err != nil {
+		log.Errorf("(%s) setting respond: %s\n", name, err)
+		return err
+	}
+
+	if err := ctx.Set("listen", build("listen")); err != nil {
+		log.Errorf("(%s) setting listen: %s\n", name, err)
+		return err
+	}
 
 	if _, err := ctx.Run(source); err != nil {
+		log.Errorf("(%s) loading script: %s\n", name, err)
 		return err
 	}
 
 	m.scripts[name] = script
 	return nil
+}
+
+func safeRun(val otto.Value, fn scriptFunc, name string) {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Errorf("(%s) recovered: %s\n", name, err)
+		}
+	}()
+
+	fn(val)
 }

@@ -2,6 +2,7 @@ package ext
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/j6n/noye/noye"
 )
@@ -14,7 +15,9 @@ func NewProxyBot(bot noye.Bot) *ProxyBot { return &ProxyBot{bot} }
 
 // Reply preprends the msg.From and sends it as a Privmsg to msg.Target
 func (p *ProxyBot) Reply(msg noye.Message, f string, a ...interface{}) {
-	p.bot.Privmsg(msg.Target, fmt.Sprintf(msg.From+": "+f, a...))
+	out := fmt.Sprintf(msg.From+": "+f, a...)
+	out = strings.Trim(out, "\r\n")
+	p.bot.Privmsg(msg.Target, out)
 }
 
 // Send delegates to noye.Bot.Send

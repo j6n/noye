@@ -5,8 +5,11 @@ import (
 	"sync"
 
 	"github.com/j6n/noye/ext"
+	"github.com/j6n/noye/logger"
 	"github.com/j6n/noye/noye"
 )
+
+var log = logger.Get()
 
 // Bot encapsulates all the parts to run a bot
 type Bot struct {
@@ -32,7 +35,9 @@ func New(conn noye.Conn) *Bot {
 
 // Dial takes an address, nick and user string then connects and returns any error
 func (b *Bot) Dial(addr, nick, user string) (err error) {
+	log.Infof("Connecting to '%s' with '%s,%s'\n", addr, nick, user)
 	if err = b.conn.Dial(addr); err != nil {
+		log.Errorf("Failed to connect to '%s': %s\n", err)
 		return
 	}
 
@@ -45,7 +50,9 @@ func (b *Bot) Dial(addr, nick, user string) (err error) {
 
 // Send sends a formatted string to the connection
 func (b *Bot) Send(f string, a ...interface{}) {
-	b.conn.WriteLine(fmt.Sprintf(f, a...))
+	msg := fmt.Sprintf(f, a...)
+	log.Debugf(">> %s\n", msg)
+	b.conn.WriteLine(msg)
 }
 
 // Privmsg sends the 'msg' to the target as a privmsg
@@ -81,6 +88,7 @@ func (b *Bot) Ready() <-chan struct{} {
 // Close attempts to close the bots connection
 func (b *Bot) Close() {
 	b.once.Do(func() {
+		log.Debugf("Closing the bot\n")
 		b.conn.Close()
 		b.stop.Close()
 	})

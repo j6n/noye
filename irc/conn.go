@@ -18,12 +18,16 @@ func (c *Connection) Dial(addr string) (err error) {
 
 // Close closes the connection
 func (c *Connection) Close() {
-	_ = c.conn.Close()
+	if err := c.conn.Close(); err != nil {
+		log.Errorf("Closing the connection: %s\n", err)
+	}
 }
 
 // WriteLine writes the 'raw' string to the connection
 func (c *Connection) WriteLine(raw string) {
-	_ = c.conn.Writer.PrintfLine("%s", raw)
+	if err := c.conn.Writer.PrintfLine("%s", raw); err != nil {
+		log.Errorf("Writing '%s': %s\n", raw, err)
+	}
 }
 
 // ReadLine returns a string, error after reading the next line from the connection
