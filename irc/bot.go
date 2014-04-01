@@ -3,6 +3,7 @@ package irc
 import (
 	"fmt"
 	"sync"
+
 	"github.com/j6n/noye/ext"
 	"github.com/j6n/noye/noye"
 )

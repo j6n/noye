@@ -5,8 +5,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
-
-	"github.com/j6n/logger"
 	"github.com/j6n/noye/irc"
 )
 
@@ -20,19 +18,13 @@ func main() {
 	signal.Notify(quit, os.Interrupt)
 
 	bot := irc.New(&irc.Connection{})
-
-	irc.Logger.Level = logger.Info
-	irc.Logger.Formatter = &logger.JsonFormatter{true}
-
 	ext := bot.Manager()
 
 	scripts := getFiles("./scripts")
 	for script := range scripts {
-		irc.Logger.Infof("loading script: %s", script)
 		if err := ext.Load(script); err != nil {
-			irc.Logger.Error(err)
-		} else {
-			irc.Logger.Infof("loaded script: %s", script)
+			// log error
+			err = nil
 		}
 	}
 
