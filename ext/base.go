@@ -49,7 +49,7 @@ func (m *Manager) defaults(vm *otto.Otto) {
 		return
 	}
 
-	if err := vm.Set("_httpclient_get", http_get); err != nil {
+	if err := vm.Set("_httpclient_get", httpGet); err != nil {
 		// TODO log error
 		err = nil
 		return
@@ -61,7 +61,7 @@ func (m *Manager) defaults(vm *otto.Otto) {
 	}
 }
 
-func http_post(args ...string) string {
+func httpPost(args ...string) string {
 	url := strings.Trim(args[0], `"`)
 	client := &http.Client{}
 
@@ -102,7 +102,7 @@ func http_post(args ...string) string {
 	return buf.String()
 }
 
-func http_get(args ...string) string {
+func httpGet(args ...string) string {
 	url := strings.Trim(args[0], `"`)
 	client := &http.Client{}
 

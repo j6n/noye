@@ -10,15 +10,18 @@ import (
 	"github.com/robertkrimen/otto"
 )
 
+// Manager holds a bunch of scripts and a safe proxy to the bot
 type Manager struct {
 	scripts map[string]*Script
 	proxy   *ProxyBot
 }
 
+// New returns a new Manager
 func New(ctx noye.Bot) *Manager {
 	return &Manager{make(map[string]*Script), NewProxyBot(ctx)}
 }
 
+// Respond takes a noye.Message and delegates it to the scripts
 func (m *Manager) Respond(msg noye.Message) {
 	for _, script := range m.scripts {
 		val, err := script.context.ToValue(msg)
@@ -39,6 +42,7 @@ func (m *Manager) Respond(msg noye.Message) {
 	}
 }
 
+// Listen takes a noye.IrcMessage and delegates it to the scripts
 func (m *Manager) Listen(msg noye.IrcMessage) {
 	for _, script := range m.scripts {
 		val, err := script.context.ToValue(msg)
@@ -60,6 +64,7 @@ func (m *Manager) Listen(msg noye.IrcMessage) {
 	}
 }
 
+// Load tries to load the file located at the path
 func (m *Manager) Load(path string) error {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -69,6 +74,7 @@ func (m *Manager) Load(path string) error {
 	return m.load(string(data), path)
 }
 
+// Reload tries to reload the named script
 func (m *Manager) Reload(name string) error {
 	if script, ok := m.scripts[name]; ok {
 		delete(m.scripts, name)

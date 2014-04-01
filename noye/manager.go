@@ -1,5 +1,6 @@
 package noye
 
+// Manager represents a set of managed extensions
 type Manager interface {
 	Respond(Message)
 	Listen(IrcMessage)

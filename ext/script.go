@@ -8,6 +8,7 @@ import (
 
 type scriptFunc func(otto.Value)
 
+// Script represents a javascript file, with its commands/callbacks parsed.
 type Script struct {
 	Name, Path, Source string
 

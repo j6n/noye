@@ -20,6 +20,7 @@ func init() {
 	}
 }
 
+// GetSession returns a new, or cached gorp.DbMap
 func GetSession() (*gorp.DbMap, error) {
 	var (
 		err    error
