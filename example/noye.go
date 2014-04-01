@@ -7,7 +7,10 @@ import (
 	"runtime"
 
 	"github.com/j6n/noye/irc"
+	"github.com/j6n/noye/logger"
 )
+
+var log = logger.Get()
 
 func init() {
 	runtime.GOMAXPROCS(4)
@@ -29,7 +32,7 @@ func main() {
 		}
 	}
 
-	if err := bot.Dial("irc.quakenet.org:6667", "noye", "museun"); err != nil {
+	if err := bot.Dial("irc.freenode.org:6667", "noye", "museun"); err != nil {
 		return
 	}
 
@@ -61,7 +64,9 @@ func getFiles(base string) <-chan string {
 			return nil
 		}
 
-		_ = filepath.Walk(base, walker)
+		if err := filepath.Walk(base, walker); err != nil {
+			log.Errorf("Walking '%s': %s\n", base, err)
+		}
 		close(scripts)
 	}()
 
