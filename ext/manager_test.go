@@ -37,8 +37,9 @@ func TestManager(t *testing.T) {
 
 		Convey("should respond and have results", func() {
 			source := `
-			respond("!foo (bar|baz)$", function(msg, res) {
-				log("foo " + res[1]);
+			respond("!foo (?P<test>bar|baz)$", function(msg, res) {
+				log("foo " + res['test']);
+				logf("%+v\n", res);
 			});`
 
 			path := "/this/test/script.js"

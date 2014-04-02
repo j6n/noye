@@ -33,7 +33,7 @@ func (m *Manager) Respond(msg noye.Message) {
 		}
 
 		for re, fn := range script.commands {
-			matches := re.FindStringSubmatch(msg.Text)
+			matches := findMatches(msg.Text, re)
 			if !re.MatchString(msg.Text) {
 				continue
 			}
@@ -109,6 +109,25 @@ func (m *Manager) load(source, path string) error {
 		return err
 	}
 
+	if err := ctx.Set("logf", func(call otto.FunctionCall) otto.Value {
+		toInterface := func(vals []otto.Value) (out []interface{}) {
+			for _, val := range vals {
+				if res, err := val.Export(); err == nil {
+					out = append(out, res)
+				}
+			}
+			return
+		}
+		if len(call.ArgumentList) > 1 && call.ArgumentList[0].IsString() {
+			log.Infof("(%s) %s\n", name, fmt.Sprintf(call.Argument(0).String(), toInterface(call.ArgumentList[1:])))
+			return otto.TrueValue()
+		}
+		return otto.FalseValue()
+	}); err != nil {
+		log.Errorf("(%s) setting logf: %s", name, err)
+		return err
+	}
+
 	build := func(path string) func(otto.FunctionCall) otto.Value {
 		return func(call otto.FunctionCall) otto.Value {
 			if len(call.ArgumentList) < 2 || !call.ArgumentList[0].IsString() || !call.ArgumentList[1].IsFunction() {
@@ -171,4 +190,23 @@ func safeRun(fn scriptFunc, name string, vals ...otto.Value) {
 	}()
 
 	fn(vals[0], vals[1:]...)
+}
+
+func findMatches(s string, re *regexp.Regexp) map[string]string {
+	captures := make(map[string]string)
+
+	match := re.FindStringSubmatch(s)
+	if match == nil {
+		return captures
+	}
+
+	for i, name := range re.SubexpNames() {
+		if i == 0 || name == "" {
+			continue
+		}
+
+		captures[name] = match[i]
+	}
+
+	return captures
 }
