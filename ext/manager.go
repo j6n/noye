@@ -17,30 +17,30 @@ var log = logger.Get()
 // Manager holds a bunch of scripts and a safe proxy to the bot
 type Manager struct {
 	scripts map[string]*Script
-	ctx     noye.Bot
+	context noye.Bot
 }
 
 // New returns a new Manager
 func New(ctx noye.Bot) *Manager {
 	return &Manager{
 		scripts: make(map[string]*Script),
-		ctx:     ctx,
+		context: ctx,
 	}
 }
 
 type wrappedMessage struct {
 	noye.Message
-	ctx noye.Bot
+	context noye.Bot
 }
 
 func (w wrappedMessage) Reply(f string, a ...interface{}) {
 	out := strings.Trim(fmt.Sprintf(w.From+": "+f, a...), "\r\n")
-	w.ctx.Privmsg(w.Target, out)
+	w.context.Privmsg(w.Target, out)
 }
 
 // Respond takes a noye.Message and delegates it to the scripts
 func (m *Manager) Respond(msg noye.Message) {
-	wrap := wrappedMessage{msg, m.ctx}
+	wrap := wrappedMessage{msg, m.context}
 
 	for _, script := range m.scripts {
 		val, err := script.context.ToValue(wrap)

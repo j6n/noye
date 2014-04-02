@@ -66,6 +66,5 @@ func TestManager(t *testing.T) {
 				fail("timed out")
 			}
 		})
-
 	})
 }

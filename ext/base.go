@@ -10,6 +10,7 @@ import (
 )
 
 const base = `
+noye = _noye_bot;
 core = {
 	"http": function(url) {	return new _http(url); },
 	"scripts": _core_scripts,
@@ -34,24 +35,25 @@ func (m *Manager) defaults(vm *otto.Otto) {
 		return true
 	}
 
-	if !set("_core_scripts", func() otto.Value {
-		var resp = struct {
-			Scripts []string
-			Details map[string]string
-		}{make([]string, 0), make(map[string]string)}
+	if !set("_noye_bot", m.ctx) ||
+		!set("_core_scripts", func() otto.Value {
+			var resp = struct {
+				Scripts []string
+				Details map[string]string
+			}{make([]string, 0), make(map[string]string)}
 
-		for k, v := range m.scripts {
-			resp.Scripts = append(resp.Scripts, k)
-			resp.Details[k] = v.Path
-		}
+			for k, v := range m.scripts {
+				resp.Scripts = append(resp.Scripts, k)
+				resp.Details[k] = v.Path
+			}
 
-		val, err := vm.ToValue(resp)
-		if err != nil {
-			return otto.UndefinedValue()
-		}
+			val, err := vm.ToValue(resp)
+			if err != nil {
+				return otto.UndefinedValue()
+			}
 
-		return val
-	}) ||
+			return val
+		}) ||
 		!set("_http_get", httpGet) {
 		return
 	}
