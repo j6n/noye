@@ -82,6 +82,11 @@ func (m *Manager) Reload(name string) error {
 	return fmt.Errorf("%s is not loaded", name)
 }
 
+// Eval evaluates the source, returning any errors
+func (m *Manager) Eval(source string) error {
+	return m.load(source, "/Test.js")
+}
+
 func (m *Manager) load(source, path string) error {
 	name := filepath.Base(path)
 	script := newScript(name, path, source)
