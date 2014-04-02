@@ -39,7 +39,7 @@ func TestManager(t *testing.T) {
 			source := `
 			respond("!foo (?P<test>bar|baz)$", function(msg, res) {
 				log("foo " + res['test']);
-				logf("%+v\n", res);
+				log("%+v", res);
 			});`
 
 			path := "/this/test/script.js"

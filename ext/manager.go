@@ -99,17 +99,6 @@ func (m *Manager) load(source, path string) error {
 	m.defaults(ctx)
 
 	if err := ctx.Set("log", func(call otto.FunctionCall) otto.Value {
-		if len(call.ArgumentList) == 1 && call.ArgumentList[0].IsString() {
-			log.Infof("(%s) %s\n", name, call.Argument(0).String())
-			return otto.TrueValue()
-		}
-		return otto.FalseValue()
-	}); err != nil {
-		log.Errorf("(%s) setting log: %s", name, err)
-		return err
-	}
-
-	if err := ctx.Set("logf", func(call otto.FunctionCall) otto.Value {
 		toInterface := func(vals []otto.Value) (out []interface{}) {
 			for _, val := range vals {
 				if res, err := val.Export(); err == nil {
@@ -118,13 +107,17 @@ func (m *Manager) load(source, path string) error {
 			}
 			return
 		}
-		if len(call.ArgumentList) > 1 && call.ArgumentList[0].IsString() {
-			log.Infof("(%s) %s\n", name, fmt.Sprintf(call.Argument(0).String(), toInterface(call.ArgumentList[1:])))
+		if call.ArgumentList[0].IsString() {
+			msg := call.Argument(0).String()
+			if len(call.ArgumentList) > 1 {
+				msg = fmt.Sprintf(msg, toInterface(call.ArgumentList[1:]))
+			}
+			log.Infof("(%s) %s\n", name, msg)
 			return otto.TrueValue()
 		}
 		return otto.FalseValue()
 	}); err != nil {
-		log.Errorf("(%s) setting logf: %s", name, err)
+		log.Errorf("(%s) setting log: %s", name, err)
 		return err
 	}
 
@@ -136,14 +129,8 @@ func (m *Manager) load(source, path string) error {
 
 			input, fn := call.ArgumentList[0].String(), call.ArgumentList[1]
 			wrap := func(env otto.Value, res ...otto.Value) {
-				if len(res) > 0 {
-					if _, err := fn.Call(fn, env, res[0]); err != nil {
-						log.Errorf("(%s,%s,%s) calling fn: %s\n", name, path, input, err)
-					}
-				} else {
-					if _, err := fn.Call(fn, env); err != nil {
-						log.Errorf("(%s,%s,%s) calling fn: %s\n", name, path, input, err)
-					}
+				if _, err := fn.Call(fn, append([]otto.Value{env}, res...)); err != nil {
+					log.Errorf("(%s,%s,%s) calling fn: %s\n", name, path, input, err)
 				}
 			}
 
