@@ -2,6 +2,7 @@ package ext
 
 import (
 	"testing"
+
 	"github.com/j6n/noye/mock"
 	"github.com/j6n/noye/noye"
 	. "github.com/smartystreets/goconvey/convey"
@@ -31,6 +32,23 @@ func TestManager(t *testing.T) {
 				From:   "museun",
 				Target: "#noye",
 				Text:   "!hello test",
+			})
+		})
+
+		Convey("should respond and have results", func() {
+			source := `
+			respond("!foo (bar|baz)$", function(msg, res) {
+				log("foo " + res[1]);
+			});`
+
+			path := "/this/test/script.js"
+			err := manager.load(source, path)
+			So(err, ShouldBeNil)
+
+			manager.Respond(noye.Message{
+				From:   "museun",
+				Target: "#noye",
+				Text:   "!foo bar",
 			})
 		})
 	})

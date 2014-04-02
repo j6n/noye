@@ -33,11 +33,17 @@ func (m *Manager) Respond(msg noye.Message) {
 		}
 
 		for re, fn := range script.commands {
+			matches := re.FindStringSubmatch(msg.Text)
 			if !re.MatchString(msg.Text) {
 				continue
 			}
 
-			go safeRun(val, fn, script.Name)
+			res, err := script.context.ToValue(matches)
+			if err != nil {
+				continue
+			}
+
+			go safeRun(fn, script.Name, val, res)
 		}
 	}
 }
@@ -56,7 +62,7 @@ func (m *Manager) Listen(msg noye.IrcMessage) {
 		}
 
 		for _, cmd := range cmds {
-			go safeRun(val, cmd, script.Name)
+			go safeRun(cmd, script.Name, val)
 		}
 	}
 }
@@ -80,11 +86,6 @@ func (m *Manager) Reload(name string) error {
 
 	// script not loaded
 	return fmt.Errorf("%s is not loaded", name)
-}
-
-// Eval evaluates the source, returning any errors
-func (m *Manager) Eval(source string) error {
-	return m.load(source, "/Test.js")
 }
 
 func (m *Manager) load(source, path string) error {
@@ -115,9 +116,15 @@ func (m *Manager) load(source, path string) error {
 			}
 
 			input, fn := call.ArgumentList[0].String(), call.ArgumentList[1]
-			wrap := func(env otto.Value) {
-				if _, err := fn.Call(fn, env); err != nil {
-					log.Errorf("(%s,%s,%s) calling fn: %s\n", name, path, input, err)
+			wrap := func(env otto.Value, res ...otto.Value) {
+				if len(res) > 0 {
+					if _, err := fn.Call(fn, env, res[0]); err != nil {
+						log.Errorf("(%s,%s,%s) calling fn: %s\n", name, path, input, err)
+					}
+				} else {
+					if _, err := fn.Call(fn, env); err != nil {
+						log.Errorf("(%s,%s,%s) calling fn: %s\n", name, path, input, err)
+					}
 				}
 			}
 
@@ -156,12 +163,12 @@ func (m *Manager) load(source, path string) error {
 	return nil
 }
 
-func safeRun(val otto.Value, fn scriptFunc, name string) {
+func safeRun(fn scriptFunc, name string, vals ...otto.Value) {
 	defer func() {
 		if err := recover(); err != nil {
 			log.Errorf("(%s) recovered: %s\n", name, err)
 		}
 	}()
 
-	fn(val)
+	fn(vals[0], vals[1:]...)
 }

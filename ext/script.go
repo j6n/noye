@@ -6,7 +6,7 @@ import (
 	"github.com/robertkrimen/otto"
 )
 
-type scriptFunc func(otto.Value)
+type scriptFunc func(otto.Value, ...otto.Value)
 
 // Script represents a javascript file, with its commands/callbacks parsed.
 type Script struct {

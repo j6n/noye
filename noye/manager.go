@@ -6,5 +6,4 @@ type Manager interface {
 	Listen(IrcMessage)
 	Load(string) error
 	Reload(string) error
-	Eval(source string) error
 }
