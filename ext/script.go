@@ -20,9 +20,9 @@ type Script struct {
 
 func newScript(name, path, source string) *Script {
 	return &Script{
-		name, path, source,
-		make(map[*regexp.Regexp]scriptFunc),
-		make(map[string][]scriptFunc),
-		otto.New(),
+		Name: name, Path: path, Source: source,
+		commands:  make(map[*regexp.Regexp]scriptFunc),
+		callbacks: make(map[string][]scriptFunc),
+		context:   otto.New(),
 	}
 }

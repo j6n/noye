@@ -52,6 +52,23 @@ func TestManager(t *testing.T) {
 				Text:   "!foo bar",
 			})
 		})
+
+		Convey("should respond and have results", func() {
+			source := `
+			respond("!foo (?P<test>bar|baz)$", function(msg, res) {
+				noye.reply(msg, "baz");
+			});`
+
+			path := "/this/test/script.js"
+			err := manager.load(source, path)
+			So(err, ShouldBeNil)
+
+			manager.Respond(noye.Message{
+				From:   "museun",
+				Target: "#noye",
+				Text:   "!foo bar",
+			})
+		})
 	})
 
 	source := `

@@ -98,7 +98,9 @@ func (m *Manager) load(source, path string) error {
 	// init proxy bot
 	m.defaults(ctx)
 
+	// add the log method
 	if err := ctx.Set("log", func(call otto.FunctionCall) otto.Value {
+		// this converts an otto.Value to an interface, so fmt.Sprintf can be used
 		toInterface := func(vals []otto.Value) (out []interface{}) {
 			for _, val := range vals {
 				if res, err := val.Export(); err == nil {
@@ -107,8 +109,12 @@ func (m *Manager) load(source, path string) error {
 			}
 			return
 		}
+
+		// if we got a string
 		if call.ArgumentList[0].IsString() {
+			// then convert it to a string
 			msg := call.Argument(0).String()
+			// and check to see if its a Printf-style call, or just a Println
 			if len(call.ArgumentList) > 1 {
 				msg = fmt.Sprintf(msg, toInterface(call.ArgumentList[1:])...)
 			}
@@ -121,13 +127,19 @@ func (m *Manager) load(source, path string) error {
 		return err
 	}
 
+	// this is kind of a mess, but it returnsa function
+	// it can represent a respond or listen object, depending on the path
 	build := func(path string) func(otto.FunctionCall) otto.Value {
 		return func(call otto.FunctionCall) otto.Value {
+			// we require atleast a string and a function for respond and listen
 			if len(call.ArgumentList) < 2 || !call.ArgumentList[0].IsString() || !call.ArgumentList[1].IsFunction() {
 				return otto.FalseValue()
 			}
 
+			// get the input and the callback
 			input, fn := call.ArgumentList[0].String(), call.ArgumentList[1]
+
+			// wrap the callback so we can log errors
 			wrap := func(env otto.Value, res ...otto.Value) {
 				if _, err := fn.Call(fn, append([]otto.Value{env}, res...)); err != nil {
 					log.Errorf("(%s,%s,%s) calling fn: %s\n", name, path, input, err)
@@ -135,14 +147,16 @@ func (m *Manager) load(source, path string) error {
 			}
 
 			switch path {
+			// if its a respond, then we'll be using a regex
 			case "respond":
 				re, err := regexp.Compile(input)
 				if err != nil {
 					log.Errorf("(%s,%s,%s) compiling re: %s\n", name, path, input, err)
 					return otto.FalseValue()
 				}
-
 				script.commands[re] = wrap
+
+			// otherwise we just add the callback to the event
 			case "listen":
 				script.callbacks[input] = append(script.callbacks[input], wrap)
 			}
@@ -150,21 +164,25 @@ func (m *Manager) load(source, path string) error {
 		}
 	}
 
+	// add the respond method
 	if err := ctx.Set("respond", build("respond")); err != nil {
 		log.Errorf("(%s) setting respond: %s\n", name, err)
 		return err
 	}
 
+	// add the listen method
 	if err := ctx.Set("listen", build("listen")); err != nil {
 		log.Errorf("(%s) setting listen: %s\n", name, err)
 		return err
 	}
 
+	// run the actual script
 	if _, err := ctx.Run(source); err != nil {
 		log.Errorf("(%s) loading script: %s\n", name, err)
 		return err
 	}
 
+	// if we've gotten this far, the script is valid
 	m.scripts[name] = script
 	return nil
 }
