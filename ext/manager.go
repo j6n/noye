@@ -110,7 +110,7 @@ func (m *Manager) load(source, path string) error {
 		if call.ArgumentList[0].IsString() {
 			msg := call.Argument(0).String()
 			if len(call.ArgumentList) > 1 {
-				msg = fmt.Sprintf(msg, toInterface(call.ArgumentList[1:]))
+				msg = fmt.Sprintf(msg, toInterface(call.ArgumentList[1:])...)
 			}
 			log.Infof("(%s) %s\n", name, msg)
 			return otto.TrueValue()
