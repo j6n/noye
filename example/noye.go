@@ -22,7 +22,6 @@ func init() {
 }
 
 func main() {
-	// to capture Ctrl-C
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 
@@ -41,14 +40,7 @@ func main() {
 		return
 	}
 
-	go func() {
-		// wait for the ctrl-c
-		<-quit
-		// send the quit
-		bot.Quit()
-	}()
-
-	// wait for the close signal
+	go func() { <-quit; bot.Quit() }()
 	<-bot.Wait()
 }
 
