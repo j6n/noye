@@ -2,22 +2,17 @@ package ext
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"net/http"
 	"strings"
+
 	"github.com/robertkrimen/otto"
 )
 
 const base = `
-noye = {
-	"reply": function() { _core_reply.apply(null, arguments); },
-	"bot": _core_bot,
-};
-
 core = {
-	"load": function() { _core_load.apply(null, arguments); },
 	"http": function(url) {	return new _http(url); },
+	"scripts": _core_scripts,
 };
 
 function _http(url) {
@@ -30,74 +25,40 @@ _http.prototype.get = function() {
 `
 
 func (m *Manager) defaults(vm *otto.Otto) {
-	if err := vm.Set("_core_reply", m.proxy.Reply); err != nil {
-		log.Errorf("Couldn't set _core_reply: %s\n", err)
-		return
+	set := func(name string, what interface{}) bool {
+		if err := vm.Set(name, what); err != nil {
+			log.Errorf("Couldn't set %s: %s\n", name, err)
+			return false
+		}
+
+		return true
 	}
 
-	if err := vm.Set("_core_bot", m.proxy); err != nil {
-		log.Errorf("Couldn't set _core_bot: %s\n", err)
-		return
-	}
+	if !set("_core_scripts", func() otto.Value {
+		var resp = struct {
+			Scripts []string
+			Details map[string]string
+		}{make([]string, 0), make(map[string]string)}
 
-	if err := vm.Set("_core_load", m.Load); err != nil {
-		log.Errorf("Couldn't set _core_load: %s\n", err)
-		return
-	}
+		for k, v := range m.scripts {
+			resp.Scripts = append(resp.Scripts, k)
+			resp.Details[k] = v.Path
+		}
 
-	if err := vm.Set("_http_get", httpGet); err != nil {
-		log.Errorf("Couldn't set _http_get: %s\n", err)
+		val, err := vm.ToValue(resp)
+		if err != nil {
+			return otto.UndefinedValue()
+		}
+
+		return val
+	}) ||
+		!set("_http_get", httpGet) {
 		return
 	}
 
 	if _, err := vm.Run(base); err != nil {
 		log.Errorf("Couldn't run base script: %s\n", err)
 	}
-}
-
-func httpPost(args ...string) string {
-	url := strings.Trim(args[0], `"`)
-	client := &http.Client{}
-
-	var body *bytes.Buffer
-	if len(args) > 2 {
-		body = bytes.NewBufferString(strings.Trim(args[1], `"`)[1:])
-	}
-
-	req, err := http.NewRequest("POST", url, body)
-	if err != nil {
-		return ""
-	}
-
-	if len(args) > 2 {
-		var headers map[string]string
-		err = json.Unmarshal([]byte(args[2]), &headers)
-		if err != nil {
-			return ""
-		}
-
-		for key, value := range headers {
-			req.Header.Add(key, value)
-		}
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return ""
-	}
-
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			// do nothing
-		}
-	}()
-	buf := new(bytes.Buffer)
-
-	if _, err := io.Copy(buf, resp.Body); err != nil {
-		return ""
-	}
-
-	return buf.String()
 }
 
 func httpGet(args ...string) string {

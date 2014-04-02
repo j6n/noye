@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/j6n/noye/logger"
 	"github.com/j6n/noye/noye"
@@ -16,18 +17,33 @@ var log = logger.Get()
 // Manager holds a bunch of scripts and a safe proxy to the bot
 type Manager struct {
 	scripts map[string]*Script
-	proxy   *ProxyBot
+	ctx     noye.Bot
 }
 
 // New returns a new Manager
 func New(ctx noye.Bot) *Manager {
-	return &Manager{make(map[string]*Script), NewProxyBot(ctx)}
+	return &Manager{
+		scripts: make(map[string]*Script),
+		ctx:     ctx,
+	}
+}
+
+type wrappedMessage struct {
+	noye.Message
+	ctx noye.Bot
+}
+
+func (w wrappedMessage) Reply(f string, a ...interface{}) {
+	out := strings.Trim(fmt.Sprintf(w.From+": "+f, a...), "\r\n")
+	w.ctx.Privmsg(w.Target, out)
 }
 
 // Respond takes a noye.Message and delegates it to the scripts
 func (m *Manager) Respond(msg noye.Message) {
+	wrap := wrappedMessage{msg, m.ctx}
+
 	for _, script := range m.scripts {
-		val, err := script.context.ToValue(msg)
+		val, err := script.context.ToValue(wrap)
 		if err != nil {
 			return
 		}
@@ -141,8 +157,14 @@ func (m *Manager) load(source, path string) error {
 
 			// wrap the callback so we can log errors
 			wrap := func(env otto.Value, res ...otto.Value) {
-				if _, err := fn.Call(fn, append([]otto.Value{env}, res...)); err != nil {
-					log.Errorf("(%s,%s,%s) calling fn: %s\n", name, path, input, err)
+				var vals []interface{}
+				vals = append(vals, env)
+				for _, r := range res {
+					vals = append(vals, r)
+				}
+
+				if _, err := fn.Call(fn, vals...); err != nil {
+					log.Errorf("(%s: %s, %s) calling func: %s\n", name, path, input, err)
 				}
 			}
 
@@ -151,7 +173,7 @@ func (m *Manager) load(source, path string) error {
 			case "respond":
 				re, err := regexp.Compile(input)
 				if err != nil {
-					log.Errorf("(%s,%s,%s) compiling re: %s\n", name, path, input, err)
+					log.Errorf("(%s: %s, %s) compiling regex: %s\n", name, path, input, err)
 					return otto.FalseValue()
 				}
 				script.commands[re] = wrap

@@ -1,6 +1,7 @@
 package ext
 
 import (
+	"fmt"
 	"regexp"
 
 	"github.com/robertkrimen/otto"
@@ -25,4 +26,8 @@ func newScript(name, path, source string) *Script {
 		callbacks: make(map[string][]scriptFunc),
 		context:   otto.New(),
 	}
+}
+
+func (s *Script) String() string {
+	return fmt.Sprintf("%s @ %s", s.Name, s.Path)
 }

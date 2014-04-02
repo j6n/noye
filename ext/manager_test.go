@@ -1,7 +1,9 @@
 package ext
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/j6n/noye/mock"
 	"github.com/j6n/noye/noye"
@@ -9,84 +11,61 @@ import (
 )
 
 func TestManager(t *testing.T) {
-	ctx := mock.NewMockBot()
-	manager := New(ctx)
-	ctx.PrivmsgFn = func(target, msg string) {
-		t.Logf("PRIVMSG >> %s: %s\n", target, msg)
-	}
-
-	Convey("Given a manager", t, func() {
-		Convey("should respond", func() {
-			source := `
-			respond("!(hello|bye)", function(msg) {
-				log("hello or bye " + msg.Text);
-				log("from: " + msg.From + " on " + msg.Target);
-				noye.reply(msg, "hello!");
-			});`
-
-			path := "/this/test/script.js"
-			err := manager.load(source, path)
-			So(err, ShouldBeNil)
-
-			manager.Respond(noye.Message{
-				From:   "museun",
-				Target: "#noye",
-				Text:   "!hello test",
-			})
-		})
-
-		Convey("should respond and have results", func() {
-			source := `
-			respond("!foo (?P<test>bar|baz)$", function(msg, res) {
-				log("foo " + res['test']);
-				log("%+v", res);
-			});`
-
-			path := "/this/test/script.js"
-			err := manager.load(source, path)
-			So(err, ShouldBeNil)
-
-			manager.Respond(noye.Message{
-				From:   "museun",
-				Target: "#noye",
-				Text:   "!foo bar",
-			})
-		})
-
-		Convey("should respond and have results", func() {
-			source := `
-			respond("!foo (?P<test>bar|baz)$", function(msg, res) {
-				noye.reply(msg, "baz");
-			});`
-
-			path := "/this/test/script.js"
-			err := manager.load(source, path)
-			So(err, ShouldBeNil)
-
-			manager.Respond(noye.Message{
-				From:   "museun",
-				Target: "#noye",
-				Text:   "!foo bar",
-			})
-		})
-	})
-
-	source := `
-	respond("!ip", function(msg) {
-		var data = core.http("http://ifconfig.me/ip").get();
-		noye.reply(msg, data);
-	});`
-
-	path := "/this/test/script.js"
-	err := manager.load(source, path)
-	if err != nil {
-		t.Error(err)
+	// quick fail
+	fail := func(f string, a ...interface{}) {
+		t.Errorf(f, a...)
 		t.FailNow()
 	}
 
-	manager.Respond(noye.Message{
-		From:   "museun",
-		Target: "#noye",
-		Text:   "!ip",
+	Convey("Given a manager", t, func() {
+		// create a mock bot
+		ctx := mock.NewMockBot()
+
+		// crate a manager
+		manager := New(ctx)
+
+		// this returns and logs a privmsg received
+		privmsg := func() <-chan string {
+			out := make(chan string)
+			ctx.PrivmsgFn = func(target, msg string) {
+				res := fmt.Sprintf("%s: %s", target, msg)
+				t.Log("PRIVMSG >>", res)
+				out <- res
+			}
+			return out
+		}
+
+		// easily make a new script from source
+		script := func(source string) error {
+			return manager.load(source, "/this/test/script.js")
+		}
+
+		// this creates a new noye.Message and sends it to the manager
+		respond := func(text string, other ...string) {
+			target, from := "#noye", "#museun"
+			if len(other) == 2 {
+				target, from = other[0], other[1]
+			}
+			manager.Respond(noye.Message{Text: text, Target: target, From: from})
+		}
+
+		Convey("it should respond", func() {
+			err := script(`
+			respond("!(hello|bye)", function(msg) {
+				msg.Reply("hello!");
+			});`)
+			So(err, ShouldBeNil)
+
+			out := privmsg()
+			respond("!hello test")
+
+			select {
+			case msg := <-out:
+				t.Log("out:", msg)
+			case <-time.After(3 * time.Second):
+				fail("timed out")
+			}
+		})
+
 	})
 }

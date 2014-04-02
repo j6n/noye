@@ -11,9 +11,14 @@ import (
 )
 
 var log = logger.Get()
+var server string
 
 func init() {
 	runtime.GOMAXPROCS(4)
+
+	if server = os.Getenv("NOYE_SERVER"); server == "" {
+		server = "localhost:6667"
+	}
 }
 
 func main() {
@@ -26,13 +31,13 @@ func main() {
 
 	scripts := getFiles("./scripts")
 	for script := range scripts {
+		log.Infof("found script: '%s'\n", script)
 		if err := ext.Load(script); err != nil {
-			// log error
-			err = nil
+			log.Errorf("loading script '%s': '%s'\n", script, err)
 		}
 	}
 
-	if err := bot.Dial("irc.freenode.org:6667", "noye", "museun"); err != nil {
+	if err := bot.Dial(server, "noye", "museun"); err != nil {
 		return
 	}
 
