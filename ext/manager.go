@@ -30,18 +30,22 @@ func New(ctx noye.Bot) *Manager {
 
 type wrappedMessage struct {
 	noye.Message
+	Public  bool
 	context noye.Bot
 }
 
 func (w wrappedMessage) Reply(f string, a ...interface{}) {
-	out := strings.Trim(fmt.Sprintf(w.From+": "+f, a...), "\r\n")
+	w.Send("%s: %s", w.From, fmt.Sprintf(f, a...))
+}
+
+func (w wrappedMessage) Send(f string, a ...interface{}) {
+	out := strings.Trim(fmt.Sprintf(f, a...), "\r\n")
 	w.context.Privmsg(w.Target, out)
 }
 
 // Respond takes a noye.Message and delegates it to the scripts
 func (m *Manager) Respond(msg noye.Message) {
-	wrap := wrappedMessage{msg, m.context}
-
+	wrap := wrappedMessage{msg, msg.From != msg.Target, m.context}
 	for _, script := range m.scripts {
 		val, err := script.context.ToValue(wrap)
 		if err != nil {
@@ -49,11 +53,11 @@ func (m *Manager) Respond(msg noye.Message) {
 		}
 
 		for re, fn := range script.commands {
-			matches := findMatches(msg.Text, re)
 			if !re.MatchString(msg.Text) {
 				continue
 			}
 
+			matches := findMatches(msg.Text, re)
 			res, err := script.context.ToValue(matches)
 			if err != nil {
 				continue
@@ -221,7 +225,6 @@ func safeRun(fn scriptFunc, name string, vals ...otto.Value) {
 
 func findMatches(s string, re *regexp.Regexp) map[string]string {
 	captures := make(map[string]string)
-
 	match := re.FindStringSubmatch(s)
 	if match == nil {
 		return captures
@@ -232,7 +235,7 @@ func findMatches(s string, re *regexp.Regexp) map[string]string {
 			continue
 		}
 
-		captures[name] = match[i]
+		captures[name] = strings.TrimSpace(match[i])
 	}
 
 	return captures

@@ -13,7 +13,7 @@ import (
 func TestManager(t *testing.T) {
 	fail := func(f string, a ...interface{}) {
 		t.Errorf(f, a...)
-		t.FailNow()
+		//t.FailNow()
 	}
 
 	Convey("Given a manager", t, func() {
@@ -34,7 +34,11 @@ func TestManager(t *testing.T) {
 
 		Convey("it should respond", func() {
 			err := script(`
-			respond("!(hello|bye)", function(msg) {
+			respond("!hello(?:$|\s*(?P<out>.+$))", function(msg, res) {
+				if (res.out) {
+					return msg.Send("hello %s", res.out);					
+				}
+
 				msg.Reply("hello!");
 			});`)
 			So(err, ShouldBeNil)
@@ -45,13 +49,22 @@ func TestManager(t *testing.T) {
 				res <- out
 			}
 
-			respond("!hello test")
+			respond("!hello")
 			select {
 			case input := <-res:
 				So(input, ShouldEqual, "#noye: museun: hello!")
 			case <-time.After(3 * time.Second):
 				fail("timed out")
 			}
+
+			respond("!hello test")
+			select {
+			case input := <-res:
+				So(input, ShouldEqual, "#noye: hello test")
+			case <-time.After(3 * time.Second):
+				fail("timed out")
+			}
+
 		})
 
 		Convey("it should listen", func() {
