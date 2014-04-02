@@ -11,42 +11,25 @@ import (
 )
 
 func TestManager(t *testing.T) {
-	// quick fail
 	fail := func(f string, a ...interface{}) {
 		t.Errorf(f, a...)
 		t.FailNow()
 	}
 
 	Convey("Given a manager", t, func() {
-		// create a mock bot
 		ctx := mock.NewMockBot()
-
-		// crate a manager
 		manager := New(ctx)
 
-		// this returns and logs a privmsg received
-		privmsg := func() <-chan string {
-			out := make(chan string)
-			ctx.PrivmsgFn = func(target, msg string) {
-				res := fmt.Sprintf("%s: %s", target, msg)
-				t.Log("PRIVMSG >>", res)
-				out <- res
-			}
-			return out
-		}
+		script := func(source string) error { return manager.load(source, "/this/test/script.js") }
+		listen := func(ev string) { manager.Listen(noye.IrcMessage{Command: ev, Source: "museun!much@localhost"}) }
 
-		// easily make a new script from source
-		script := func(source string) error {
-			return manager.load(source, "/this/test/script.js")
-		}
-
-		// this creates a new noye.Message and sends it to the manager
 		respond := func(text string, other ...string) {
-			target, from := "#noye", "#museun"
+			from, target := "museun", "#noye"
 			if len(other) == 2 {
-				target, from = other[0], other[1]
+				from, target = other[0], other[1]
 			}
-			manager.Respond(noye.Message{Text: text, Target: target, From: from})
+
+			manager.Respond(noye.Message{from, target, text})
 		}
 
 		Convey("it should respond", func() {
@@ -56,12 +39,38 @@ func TestManager(t *testing.T) {
 			});`)
 			So(err, ShouldBeNil)
 
-			out := privmsg()
-			respond("!hello test")
+			res := make(chan string)
+			ctx.PrivmsgFn = func(target, msg string) {
+				out := fmt.Sprintf("%s: %s", target, msg)
+				res <- out
+			}
 
+			respond("!hello test")
 			select {
-			case msg := <-out:
-				t.Log("out:", msg)
+			case input := <-res:
+				So(input, ShouldEqual, "#noye: museun: hello!")
+			case <-time.After(3 * time.Second):
+				fail("timed out")
+			}
+		})
+
+		Convey("it should listen", func() {
+			err := script(`
+			listen("001", function(msg) {
+				noye.Join("#test");
+			});`)
+			So(err, ShouldBeNil)
+
+			res := make(chan string)
+			ctx.JoinFn = func(target string) {
+				res <- target
+			}
+
+			listen("001")
+			select {
+			case input := <-res:
+				So(input, ShouldEqual, "#test")
+				return
 			case <-time.After(3 * time.Second):
 				fail("timed out")
 			}

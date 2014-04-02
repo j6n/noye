@@ -35,26 +35,32 @@ func (m *Manager) defaults(vm *otto.Otto) {
 		return true
 	}
 
-	if !set("_noye_bot", m.ctx) ||
-		!set("_core_scripts", func() otto.Value {
-			var resp = struct {
-				Scripts []string
-				Details map[string]string
-			}{make([]string, 0), make(map[string]string)}
+	if !set("_noye_bot", m.context) {
+		return
+	}
 
-			for k, v := range m.scripts {
-				resp.Scripts = append(resp.Scripts, k)
-				resp.Details[k] = v.Path
-			}
+	if !set("_core_scripts", func() otto.Value {
+		var resp = struct {
+			Scripts []string
+			Details map[string]string
+		}{make([]string, 0), make(map[string]string)}
 
-			val, err := vm.ToValue(resp)
-			if err != nil {
-				return otto.UndefinedValue()
-			}
+		for k, v := range m.scripts {
+			resp.Scripts = append(resp.Scripts, k)
+			resp.Details[k] = v.Path
+		}
 
-			return val
-		}) ||
-		!set("_http_get", httpGet) {
+		val, err := vm.ToValue(resp)
+		if err != nil {
+			return otto.UndefinedValue()
+		}
+
+		return val
+	}) {
+		return
+	}
+
+	if !set("_http_get", httpGet) {
 		return
 	}
 
