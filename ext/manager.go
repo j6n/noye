@@ -63,7 +63,7 @@ func (m *Manager) Respond(msg noye.Message) {
 				continue
 			}
 
-			go safeRun(fn, script.Name, val, res)
+			go safeRun(fn, script.Name(), val, res)
 		}
 	}
 }
@@ -82,7 +82,7 @@ func (m *Manager) Listen(msg noye.IrcMessage) {
 		}
 
 		for _, cmd := range cmds {
-			go safeRun(cmd, script.Name, val)
+			go safeRun(cmd, script.Name(), val)
 		}
 	}
 }
@@ -101,11 +101,20 @@ func (m *Manager) Load(path string) error {
 func (m *Manager) Reload(name string) error {
 	if script, ok := m.scripts[name]; ok {
 		delete(m.scripts, name)
-		return m.load(script.Source, script.Path)
+		return m.load(script.Source(), script.Path())
 	}
 
 	// script not loaded
 	return fmt.Errorf("%s is not loaded", name)
+}
+
+// Scripts returns a mapping of the managed scripts
+func (m *Manager) Scripts() map[string]noye.Script {
+	res := make(map[string]noye.Script)
+	for k, v := range m.scripts {
+		res[k] = noye.Script(v)
+	}
+	return res
 }
 
 func (m *Manager) load(source, path string) error {

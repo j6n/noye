@@ -47,7 +47,7 @@ func (m *Manager) defaults(vm *otto.Otto) {
 
 		for k, v := range m.scripts {
 			resp.Scripts = append(resp.Scripts, k)
-			resp.Details[k] = v.Path
+			resp.Details[k] = v.Path()
 		}
 
 		val, err := vm.ToValue(resp)
