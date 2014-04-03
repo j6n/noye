@@ -15,7 +15,7 @@ var log *logger
 // Get returns a cache, or new logger
 func Get() *logger {
 	if log == nil {
-		fmtr := factorlog.NewStdFormatter("%{Date} %{Time} -%{SEVERITY}- %{File}:%{Line} -- %{Message}")
+		fmtr := factorlog.NewStdFormatter("\r%{Date} %{Time} -%{SEVERITY}- %{File}:%{Line} -- %{Message}")
 		log = &logger{factorlog.New(os.Stdout, fmtr)}
 	}
 

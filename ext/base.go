@@ -1,45 +1,17 @@
 package ext
 
-import (
-	"bytes"
-	"io"
-	"net/http"
-	"strings"
-
-	"github.com/robertkrimen/otto"
-)
+import "github.com/robertkrimen/otto"
 
 const base = `
 noye = _noye_bot;
 core = {
-	"http": function(url) {	return new _http(url); },
+	"manager": _core_manager,
 	"scripts": _core_scripts,
 };
-
-function _http(url) {
-	this._url = url;	
-}
-
-_http.prototype.get = function() {	
-	return _http_get(this._url);
-}
 `
 
-func (m *Manager) defaults(vm *otto.Otto) {
-	set := func(name string, what interface{}) bool {
-		if err := vm.Set(name, what); err != nil {
-			log.Errorf("Couldn't set %s: %s\n", name, err)
-			return false
-		}
-
-		return true
-	}
-
-	if !set("_noye_bot", m.context) {
-		return
-	}
-
-	if !set("_core_scripts", func() otto.Value {
+func (m *Manager) setDefaults(vm *otto.Otto) {
+	scripts := func() otto.Value {
 		var resp = struct {
 			Scripts []string
 			Details map[string]string
@@ -56,43 +28,22 @@ func (m *Manager) defaults(vm *otto.Otto) {
 		}
 
 		return val
-	}) {
-		return
 	}
 
-	if !set("_http_get", httpGet) {
-		return
+	binding := map[string]interface{}{
+		"_noye_bot":     m.context,
+		"_core_manager": m,
+		"_core_scripts": scripts,
+	}
+
+	for k, v := range binding {
+		if err := vm.Set(k, v); err != nil {
+			log.Errorf("Couldn't set %s: %s\n", k, err)
+			return
+		}
 	}
 
 	if _, err := vm.Run(base); err != nil {
 		log.Errorf("Couldn't run base script: %s\n", err)
 	}
-}
-
-func httpGet(args ...string) string {
-	url := strings.Trim(args[0], `"`)
-	client := &http.Client{}
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return ""
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return ""
-	}
-
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			// do nothing
-		}
-	}()
-	buf := new(bytes.Buffer)
-
-	if _, err := io.Copy(buf, resp.Body); err != nil {
-		return ""
-	}
-
-	return buf.String()
 }

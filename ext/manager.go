@@ -9,6 +9,7 @@ import (
 
 	"github.com/j6n/noye/logger"
 	"github.com/j6n/noye/noye"
+
 	"github.com/robertkrimen/otto"
 )
 
@@ -49,6 +50,7 @@ func (m *Manager) Respond(msg noye.Message) {
 	for _, script := range m.scripts {
 		val, err := script.context.ToValue(wrap)
 		if err != nil {
+			log.Errorf("(%s) converting msg: %s", script.Name(), err)
 			return
 		}
 
@@ -60,6 +62,7 @@ func (m *Manager) Respond(msg noye.Message) {
 			matches := findMatches(msg.Text, re)
 			res, err := script.context.ToValue(matches)
 			if err != nil {
+				log.Errorf("(%s) converting re matches: %s", script.Name(), err)
 				continue
 			}
 
@@ -100,8 +103,15 @@ func (m *Manager) Load(path string) error {
 // Reload tries to reload the named script
 func (m *Manager) Reload(name string) error {
 	if script, ok := m.scripts[name]; ok {
+		log.Debugf("trying to reload: %s\n", name)
 		delete(m.scripts, name)
-		return m.load(script.Source(), script.Path())
+
+		source, err := ioutil.ReadFile(script.Path())
+		if err != nil {
+			return err
+		}
+
+		return m.load(string(source), script.Path())
 	}
 
 	// script not loaded
@@ -109,12 +119,11 @@ func (m *Manager) Reload(name string) error {
 }
 
 // Scripts returns a mapping of the managed scripts
-func (m *Manager) Scripts() map[string]noye.Script {
-	res := make(map[string]noye.Script)
-	for k, v := range m.scripts {
-		res[k] = noye.Script(v)
+func (m *Manager) Scripts() (res []noye.Script) {
+	for _, v := range m.scripts {
+		res = append(res, v)
 	}
-	return res
+	return
 }
 
 func (m *Manager) load(source, path string) error {
@@ -124,8 +133,8 @@ func (m *Manager) load(source, path string) error {
 	// copy pointer
 	ctx := script.context
 
-	// init proxy bot
-	m.defaults(ctx)
+	// init proxy bot with default js methods
+	m.setDefaults(ctx)
 
 	// add the log method
 	if err := ctx.Set("log", func(call otto.FunctionCall) otto.Value {

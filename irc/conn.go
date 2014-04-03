@@ -7,12 +7,12 @@ type Connection struct{ conn *textproto.Conn }
 
 // Dial uses a provided addr:port and opens a connection, returning any error
 func (c *Connection) Dial(addr string) (err error) {
-	tp, err := textproto.Dial("tcp", addr)
+	conn, err := textproto.Dial("tcp", addr)
 	if err != nil {
 		return err
 	}
 
-	c.conn = tp
+	c.conn = conn
 	return
 }
 

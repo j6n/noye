@@ -20,11 +20,16 @@ type Script struct {
 }
 
 func newScript(name, path, source string) *Script {
+	context := otto.New()
+	if data, err := lodashminjs(); err == nil {
+		context.Run(string(data))
+	}
+
 	return &Script{
 		name: name, path: path, source: source,
 		commands:  make(map[*regexp.Regexp]scriptFunc),
 		callbacks: make(map[string][]scriptFunc),
-		context:   otto.New(),
+		context:   context,
 	}
 }
 

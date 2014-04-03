@@ -6,7 +6,7 @@ type Manager interface {
 	Listen(IrcMessage)
 	Load(string) error
 	Reload(string) error
-	Scripts() map[string]Script
+	Scripts() []Script
 }
 
 // Script represents a script
