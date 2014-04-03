@@ -26,10 +26,10 @@ func TestDb(t *testing.T) {
 			data, err := json.Marshal(&f)
 			So(err, ShouldBeNil)
 
-			err = Set("foo", string(data))
+			err = Set("foo", "bar", string(data))
 			So(err, ShouldBeNil)
 
-			res, err := Get("foo")
+			res, err := Get("foo", "bar")
 			So(err, ShouldBeNil)
 			So(res, ShouldResemble, string(data))
 		})

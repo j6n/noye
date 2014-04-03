@@ -23,6 +23,7 @@ func init() {
 var schema = `
 CREATE TABLE IF NOT EXISTS scripts (
 	n	varchar(255) NOT NULL,
+	o   varchar(255) NOT NULL,
 	d	BLOB,
 	PRIMARY KEY(n)
 );
@@ -40,14 +41,14 @@ func GetSession() (db *sqlx.DB, err error) {
 	return
 }
 
-func Get(table string) (string, error) {
+func Get(table, key string) (string, error) {
 	sess, err := GetSession()
 	if err != nil {
 		return "", err
 	}
 
 	temp := map[string]interface{}{}
-	row := sess.QueryRowx("SELECT d FROM scripts WHERE n = ?", table)
+	row := sess.QueryRowx("SELECT d FROM scripts WHERE n = ? AND o = ?", key, table)
 	if err := row.MapScan(temp); err != nil {
 		return "", err
 	}
@@ -56,10 +57,10 @@ func Get(table string) (string, error) {
 		return res, nil
 	}
 
-	return "", fmt.Errorf("couldn't find '%s' on scripts", table)
+	return "", fmt.Errorf("couldn't find '%s'/'%s' on scripts", key, table)
 }
 
-func Set(table, data string) (err error) {
+func Set(table, key, data string) (err error) {
 	sess, err := GetSession()
 	if err != nil {
 		return err
@@ -72,7 +73,7 @@ func Set(table, data string) (err error) {
 	input := []byte(data)
 
 	// try update
-	res, err := tx.Exec("UPDATE scripts SET d = ? WHERE n = ?", input, table)
+	res, err := tx.Exec("UPDATE scripts SET d = ? WHERE n = ? AND o = ?", input, key, table)
 	if err != nil {
 		return err
 	}
@@ -84,7 +85,7 @@ func Set(table, data string) (err error) {
 	}
 
 	// try insert
-	_, err = tx.Exec("INSERT INTO scripts (n, d) VALUES ($1, $2)", table, input)
+	_, err = tx.Exec("INSERT INTO scripts (d, n, o) VALUES (?, ?, ?)", input, key, table)
 	if err == nil {
 		tx.Commit()
 	}

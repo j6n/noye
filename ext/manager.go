@@ -134,7 +134,7 @@ func (m *Manager) load(source, path string) error {
 	ctx := script.context
 
 	// init proxy bot with default js methods
-	m.setDefaults(ctx)
+	m.setDefaults(ctx, script)
 
 	// add the log method
 	if err := ctx.Set("log", func(call otto.FunctionCall) otto.Value {
