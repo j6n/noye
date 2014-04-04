@@ -11,6 +11,7 @@ func TestMessageQueue(t *testing.T) {
 		mq := NewQueue()
 		Convey("Given a blacklist", func() {
 			mq.Blacklist("foo", "bar", "sojin")
+
 			Convey("It should ignore matching public requests", func() {
 				id, ch := mq.Subscribe("foo", false)
 				So(id, ShouldEqual, 0)
@@ -18,6 +19,7 @@ func TestMessageQueue(t *testing.T) {
 				mq.Update("foo", "bar", true)
 				mq.Update("foo", "bar", false)
 			})
+
 			Convey("It should honor matching private requests", func() {
 				_, ch := mq.Subscribe("foo", true)
 				So(ch, ShouldNotBeNil)
