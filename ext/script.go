@@ -2,9 +2,9 @@ package ext
 
 import (
 	"fmt"
-	"net/http"
 	"regexp"
 
+	"github.com/j6n/noye/http"
 	"github.com/j6n/noye/store"
 	"github.com/robertkrimen/otto"
 )
