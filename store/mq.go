@@ -27,7 +27,7 @@ func (q *Queue) Blacklist(keys ...string) {
 }
 
 func (q *Queue) Update(key, val string, private bool) {
-	if _, ok := q.private[key]; ok && !private {
+	if _, ok := q.private[key]; ok && private {
 		// can't broadcast that
 		return
 	}
@@ -44,12 +44,7 @@ func (q *Queue) Update(key, val string, private bool) {
 	}
 }
 
-func (q *Queue) Subscribe(key string, private bool) (int64, chan string) {
-	if _, ok := q.private[key]; ok && !private {
-		// can't broadcast that
-		return 0, nil
-	}
-
+func (q *Queue) Subscribe(key string) (int64, chan string) {
 	id, ch := q.next(), make(chan string)
 
 	q.mu.Lock()
