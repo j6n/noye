@@ -1,10 +1,6 @@
 package ext
 
-import (
-	"github.com/j6n/noye/store"
-
-	"github.com/robertkrimen/otto"
-)
+import "github.com/robertkrimen/otto"
 
 const base = `
 noye = _noye_bot;
@@ -52,8 +48,6 @@ func (m *Manager) setDefaults(script *Script) {
 		log.Errorf("Couldn't run base script: %s\n", err)
 	}
 }
-
-var mq = store.NewQueue()
 
 func (m *Manager) getScriptsFor(s *Script) otto.Value {
 	var resp = struct {

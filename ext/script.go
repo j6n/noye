@@ -53,6 +53,8 @@ func (s *Script) Path() string { return s.path }
 // Source returns the scripts source code
 func (s *Script) Source() string { return s.source }
 
+// these are the default methods injected into it
+// set saves a string for a key
 func (s *Script) scriptSet(call otto.FunctionCall) otto.Value {
 	if len(call.ArgumentList) != 2 || !call.ArgumentList[0].IsString() || !call.ArgumentList[1].IsString() {
 		return otto.FalseValue()
@@ -67,6 +69,7 @@ func (s *Script) scriptSet(call otto.FunctionCall) otto.Value {
 	return otto.TrueValue()
 }
 
+// set gets a string for a key
 func (s *Script) scriptGet(call otto.FunctionCall) otto.Value {
 	if len(call.ArgumentList) != 1 || !call.ArgumentList[0].IsString() {
 		return otto.UndefinedValue()
@@ -83,6 +86,7 @@ func (s *Script) scriptGet(call otto.FunctionCall) otto.Value {
 	return val
 }
 
+// sub subscribes to the message queue for a string
 func (s *Script) scriptSub(call otto.FunctionCall) otto.Value {
 	if len(call.ArgumentList) < 2 || !call.ArgumentList[0].IsString() || !call.ArgumentList[1].IsFunction() {
 		return otto.NullValue()
@@ -112,6 +116,7 @@ func (s *Script) scriptSub(call otto.FunctionCall) otto.Value {
 	return val
 }
 
+// unsub unsubscribes to the message queue
 func (s *Script) scriptUnsub(call otto.FunctionCall) otto.Value {
 	if len(call.ArgumentList) < 1 || !call.ArgumentList[0].IsNumber() {
 		return otto.FalseValue()
@@ -131,6 +136,7 @@ func (s *Script) scriptUnsub(call otto.FunctionCall) otto.Value {
 	return otto.TrueValue()
 }
 
+// update broadcasts a message for a key
 func (s *Script) scriptUpdate(call otto.FunctionCall) otto.Value {
 	if len(call.ArgumentList) != 2 || !call.ArgumentList[0].IsString() || !call.ArgumentList[1].IsString() {
 		return otto.FalseValue()
@@ -141,6 +147,7 @@ func (s *Script) scriptUpdate(call otto.FunctionCall) otto.Value {
 	return otto.TrueValue()
 }
 
+// httpget does a httpget for a string, returning a int, string
 func (s *Script) scriptHttpget(call otto.FunctionCall) otto.Value {
 	if len(call.ArgumentList) < 2 || !call.ArgumentList[0].IsString() || !call.ArgumentList[1].IsFunction() {
 		return otto.FalseValue()

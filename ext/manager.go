@@ -9,11 +9,13 @@ import (
 
 	"github.com/j6n/noye/logger"
 	"github.com/j6n/noye/noye"
+	"github.com/j6n/noye/store"
 
 	"github.com/robertkrimen/otto"
 )
 
 var log = logger.Get()
+var mq = store.NewQueue()
 
 // Manager holds a bunch of scripts and a safe proxy to the bot
 type Manager struct {
