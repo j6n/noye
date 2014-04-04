@@ -26,57 +26,91 @@ http = {
 };
 `
 
-func (m *Manager) setDefaults(vm *otto.Otto, script *Script) {
-	scripts := func() otto.Value {
-		var resp = struct {
-			Scripts []string
-			Details map[string]string
-		}{make([]string, 0), make(map[string]string)}
+func (m *Manager) setDefaults(script *Script) {
+	binding := map[string]interface{}{
+		"_noye_bot": m.context,
 
-		for k, v := range m.scripts {
-			resp.Scripts = append(resp.Scripts, k)
-			resp.Details[k] = v.Path()
-		}
+		"_core_manager":      m,
+		"_core_scripts":      getScripts(m, script),
+		"_core_storage_load": scriptGet(script),
+		"_core_storage_save": scriptSet(script),
 
-		val, err := vm.ToValue(resp)
-		if err != nil {
-			return otto.UndefinedValue()
-		}
+		"_share_sub":    scriptSub(script),
+		"_share_unsub":  scriptUnsub(script),
+		"_share_update": scriptUpdate(script),
 
-		return val
+		"_http_get": scriptHttpget(script),
 	}
 
-	set := func(call otto.FunctionCall) otto.Value {
+	for k, v := range binding {
+		if err := script.context.Set(k, v); err != nil {
+			log.Errorf("Couldn't set %s: %s\n", k, err)
+			return
+		}
+	}
+
+	if _, err := script.context.Run(base); err != nil {
+		log.Errorf("Couldn't run base script: %s\n", err)
+	}
+}
+
+var mq = store.NewQueue()
+
+func getScripts(m *Manager, s *Script) otto.Value {
+	var resp = struct {
+		Scripts []string
+		Details map[string]string
+	}{make([]string, 0), make(map[string]string)}
+
+	for k, v := range m.scripts {
+		resp.Scripts = append(resp.Scripts, k)
+		resp.Details[k] = v.Path()
+	}
+
+	val, err := s.context.ToValue(resp)
+	if err != nil {
+		return otto.UndefinedValue()
+	}
+
+	return val
+}
+
+func scriptSet(s *Script) func(call otto.FunctionCall) otto.Value {
+	return func(call otto.FunctionCall) otto.Value {
 		if len(call.ArgumentList) != 2 || !call.ArgumentList[0].IsString() || !call.ArgumentList[1].IsString() {
 			return otto.FalseValue()
 		}
 
 		key, data := call.ArgumentList[0].String(), call.ArgumentList[1].String()
-		if err := store.Set(script.Name(), key, data); err != nil {
-			log.Errorf("(%s) setting val at '%s': %s", script.Name(), key, err)
+		if err := store.Set(s.Name(), key, data); err != nil {
+			log.Errorf("(%s) setting val at '%s': %s", s.Name(), key, err)
 			return otto.FalseValue()
 		}
 
 		return otto.TrueValue()
 	}
+}
 
-	get := func(call otto.FunctionCall) otto.Value {
+func scriptGet(s *Script) func(call otto.FunctionCall) otto.Value {
+	return func(call otto.FunctionCall) otto.Value {
 		if len(call.ArgumentList) != 1 || !call.ArgumentList[0].IsString() {
 			return otto.UndefinedValue()
 		}
 
 		key := call.ArgumentList[0].String()
-		data, err := store.Get(script.Name(), key)
+		data, err := store.Get(s.Name(), key)
 		if err != nil {
-			log.Errorf("(%s) getting val at '%s': %s", script.Name(), key, err)
+			log.Errorf("(%s) getting val at '%s': %s", s.Name(), key, err)
 			return otto.UndefinedValue()
 		}
 
-		val, _ := vm.ToValue(data)
+		val, _ := s.context.ToValue(data)
 		return val
 	}
+}
 
-	sub := func(call otto.FunctionCall) otto.Value {
+func scriptSub(s *Script) func(call otto.FunctionCall) otto.Value {
+	return func(call otto.FunctionCall) otto.Value {
 		if len(call.ArgumentList) < 2 || !call.ArgumentList[0].IsString() || !call.ArgumentList[1].IsFunction() {
 			return otto.NullValue()
 		}
@@ -84,47 +118,51 @@ func (m *Manager) setDefaults(vm *otto.Otto, script *Script) {
 		key, fn := call.ArgumentList[0].String(), call.ArgumentList[1]
 		id, ch := mq.Subscribe(key)
 
-		val, err := script.context.ToValue(id)
+		val, err := s.context.ToValue(id)
 		if err != nil {
-			log.Errorf("(%s) convert val (sub): %s", script.Name(), err)
+			log.Errorf("(%s) convert val (sub): %s", s.Name(), err)
 			return otto.NullValue()
 		}
 
 		go func() {
 			for data := range ch {
-				val, err := script.context.ToValue(data)
+				val, err := s.context.ToValue(data)
 				if err != nil {
-					log.Errorf("(%s) convert val '%s': %s", script.Name(), data, err)
+					log.Errorf("(%s) convert val '%s': %s", s.Name(), data, err)
 					val = otto.NullValue()
 				}
 				fn.Call(fn, val)
 			}
 		}()
 
-		script.subs = append(script.subs, id)
+		s.subs = append(s.subs, id)
 		return val
 	}
+}
 
-	unsub := func(call otto.FunctionCall) otto.Value {
+func scriptUnsub(s *Script) func(call otto.FunctionCall) otto.Value {
+	return func(call otto.FunctionCall) otto.Value {
 		if len(call.ArgumentList) < 1 || !call.ArgumentList[0].IsNumber() {
 			return otto.FalseValue()
 		}
 		id, err := call.ArgumentList[0].ToInteger()
 		if err != nil {
-			log.Errorf("(%s) wasn't given an unsub id: %s", script.Name(), err)
+			log.Errorf("(%s) wasn't given an unsub id: %s", s.Name(), err)
 			return otto.TrueValue()
 		}
 
 		mq.Unsubscribe(id)
-		for i, s := range script.subs {
-			if s == id {
-				script.subs = script.subs[:i+copy(script.subs[i:], script.subs[i+1:])]
+		for i, sub := range s.subs {
+			if sub == id {
+				s.subs = s.subs[:i+copy(s.subs[i:], s.subs[i+1:])]
 			}
 		}
 		return otto.TrueValue()
 	}
+}
 
-	update := func(call otto.FunctionCall) otto.Value {
+func scriptUpdate(s *Script) func(call otto.FunctionCall) otto.Value {
+	return func(call otto.FunctionCall) otto.Value {
 		if len(call.ArgumentList) != 2 || !call.ArgumentList[0].IsString() || !call.ArgumentList[1].IsString() {
 			return otto.FalseValue()
 		}
@@ -133,8 +171,10 @@ func (m *Manager) setDefaults(vm *otto.Otto, script *Script) {
 		mq.Update(key, val)
 		return otto.TrueValue()
 	}
+}
 
-	httpget := func(call otto.FunctionCall) otto.Value {
+func scriptHttpget(s *Script) func(call otto.FunctionCall) otto.Value {
+	return func(call otto.FunctionCall) otto.Value {
 		if len(call.ArgumentList) < 2 || !call.ArgumentList[0].IsString() || !call.ArgumentList[1].IsFunction() {
 			return otto.FalseValue()
 		}
@@ -156,39 +196,11 @@ func (m *Manager) setDefaults(vm *otto.Otto, script *Script) {
 		url, fn := call.ArgumentList[0].String(), call.ArgumentList[1]
 		go func() {
 			status, res := http.Get(url, headers)
-			sval, _ := script.context.ToValue(status)
-			rval, _ := script.context.ToValue(res)
+			sval, _ := s.context.ToValue(status)
+			rval, _ := s.context.ToValue(res)
 
 			fn.Call(fn, sval, rval)
 		}()
 		return otto.TrueValue()
 	}
-
-	binding := map[string]interface{}{
-		"_noye_bot": m.context,
-
-		"_core_manager":      m,
-		"_core_scripts":      scripts,
-		"_core_storage_load": get,
-		"_core_storage_save": set,
-
-		"_share_sub":    sub,
-		"_share_unsub":  unsub,
-		"_share_update": update,
-
-		"_http_get": httpget,
-	}
-
-	for k, v := range binding {
-		if err := vm.Set(k, v); err != nil {
-			log.Errorf("Couldn't set %s: %s\n", k, err)
-			return
-		}
-	}
-
-	if _, err := vm.Run(base); err != nil {
-		log.Errorf("Couldn't run base script: %s\n", err)
-	}
 }
-
-var mq = store.NewQueue()
