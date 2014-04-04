@@ -2,8 +2,10 @@ package ext
 
 import (
 	"fmt"
+	"net/http"
 	"regexp"
 
+	"github.com/j6n/noye/store"
 	"github.com/robertkrimen/otto"
 )
 
@@ -50,3 +52,121 @@ func (s *Script) Path() string { return s.path }
 
 // Source returns the scripts source code
 func (s *Script) Source() string { return s.source }
+
+func (s *Script) scriptSet(call otto.FunctionCall) otto.Value {
+	if len(call.ArgumentList) != 2 || !call.ArgumentList[0].IsString() || !call.ArgumentList[1].IsString() {
+		return otto.FalseValue()
+	}
+
+	key, data := call.ArgumentList[0].String(), call.ArgumentList[1].String()
+	if err := store.Set(s.Name(), key, data); err != nil {
+		log.Errorf("(%s) setting val at '%s': %s", s.Name(), key, err)
+		return otto.FalseValue()
+	}
+
+	return otto.TrueValue()
+}
+
+func (s *Script) scriptGet(call otto.FunctionCall) otto.Value {
+	if len(call.ArgumentList) != 1 || !call.ArgumentList[0].IsString() {
+		return otto.UndefinedValue()
+	}
+
+	key := call.ArgumentList[0].String()
+	data, err := store.Get(s.Name(), key)
+	if err != nil {
+		log.Errorf("(%s) getting val at '%s': %s", s.Name(), key, err)
+		return otto.UndefinedValue()
+	}
+
+	val, _ := s.context.ToValue(data)
+	return val
+}
+
+func (s *Script) scriptSub(call otto.FunctionCall) otto.Value {
+	if len(call.ArgumentList) < 2 || !call.ArgumentList[0].IsString() || !call.ArgumentList[1].IsFunction() {
+		return otto.NullValue()
+	}
+
+	key, fn := call.ArgumentList[0].String(), call.ArgumentList[1]
+	id, ch := mq.Subscribe(key)
+
+	val, err := s.context.ToValue(id)
+	if err != nil {
+		log.Errorf("(%s) convert val (sub): %s", s.Name(), err)
+		return otto.NullValue()
+	}
+
+	go func() {
+		for data := range ch {
+			val, err := s.context.ToValue(data)
+			if err != nil {
+				log.Errorf("(%s) convert val '%s': %s", s.Name(), data, err)
+				val = otto.NullValue()
+			}
+			fn.Call(fn, val)
+		}
+	}()
+
+	s.subs = append(s.subs, id)
+	return val
+}
+
+func (s *Script) scriptUnsub(call otto.FunctionCall) otto.Value {
+	if len(call.ArgumentList) < 1 || !call.ArgumentList[0].IsNumber() {
+		return otto.FalseValue()
+	}
+	id, err := call.ArgumentList[0].ToInteger()
+	if err != nil {
+		log.Errorf("(%s) wasn't given an unsub id: %s", s.Name(), err)
+		return otto.TrueValue()
+	}
+
+	mq.Unsubscribe(id)
+	for i, sub := range s.subs {
+		if sub == id {
+			s.subs = s.subs[:i+copy(s.subs[i:], s.subs[i+1:])]
+		}
+	}
+	return otto.TrueValue()
+}
+
+func (s *Script) scriptUpdate(call otto.FunctionCall) otto.Value {
+	if len(call.ArgumentList) != 2 || !call.ArgumentList[0].IsString() || !call.ArgumentList[1].IsString() {
+		return otto.FalseValue()
+	}
+
+	key, val := call.ArgumentList[0].String(), call.ArgumentList[1].String()
+	mq.Update(key, val)
+	return otto.TrueValue()
+}
+
+func (s *Script) scriptHttpget(call otto.FunctionCall) otto.Value {
+	if len(call.ArgumentList) < 2 || !call.ArgumentList[0].IsString() || !call.ArgumentList[1].IsFunction() {
+		return otto.FalseValue()
+	}
+
+	var headers map[string]string
+	if len(call.ArgumentList) > 2 {
+		obj, err := call.ArgumentList[3].Export()
+		if err != nil {
+			otto.FalseValue()
+		}
+
+		if m, ok := obj.(map[string]interface{}); ok {
+			for k, v := range m {
+				headers[k] = v.(string)
+			}
+		}
+	}
+
+	url, fn := call.ArgumentList[0].String(), call.ArgumentList[1]
+	go func() {
+		status, res := http.Get(url, headers)
+		sval, _ := s.context.ToValue(status)
+		rval, _ := s.context.ToValue(res)
+
+		fn.Call(fn, sval, rval)
+	}()
+	return otto.TrueValue()
+}
