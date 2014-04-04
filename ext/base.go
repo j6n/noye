@@ -1,6 +1,7 @@
 package ext
 
 import (
+	"github.com/j6n/noye/http"
 	"github.com/j6n/noye/store"
 
 	"github.com/robertkrimen/otto"
@@ -18,6 +19,10 @@ share = {
 	"update":      _share_update,
 	"subscribe":   _share_sub,
 	"unsubscribe": _share_unsub,
+};
+
+http = {
+	"get": _http_get,
 };
 `
 
@@ -129,15 +134,49 @@ func (m *Manager) setDefaults(vm *otto.Otto, script *Script) {
 		return otto.TrueValue()
 	}
 
+	httpget := func(call otto.FunctionCall) otto.Value {
+		if len(call.ArgumentList) < 2 || !call.ArgumentList[0].IsString() || !call.ArgumentList[1].IsFunction() {
+			return otto.FalseValue()
+		}
+
+		var headers map[string]string
+		if len(call.ArgumentList) > 2 {
+			obj, err := call.ArgumentList[3].Export()
+			if err != nil {
+				otto.FalseValue()
+			}
+
+			if m, ok := obj.(map[string]interface{}); ok {
+				for k, v := range m {
+					headers[k] = v.(string)
+				}
+			}
+		}
+
+		url, fn := call.ArgumentList[0].String(), call.ArgumentList[1]
+		go func() {
+			status, res := http.Get(url, headers)
+			sval, _ := script.context.ToValue(status)
+			rval, _ := script.context.ToValue(res)
+
+			fn.Call(fn, sval, rval)
+		}()
+		return otto.TrueValue()
+	}
+
 	binding := map[string]interface{}{
-		"_noye_bot":          m.context,
+		"_noye_bot": m.context,
+
 		"_core_manager":      m,
 		"_core_scripts":      scripts,
 		"_core_storage_load": get,
 		"_core_storage_save": set,
-		"_share_sub":         sub,
-		"_share_unsub":       unsub,
-		"_share_update":      update,
+
+		"_share_sub":    sub,
+		"_share_unsub":  unsub,
+		"_share_update": update,
+
+		"_http_get": httpget,
 	}
 
 	for k, v := range binding {
