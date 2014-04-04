@@ -93,7 +93,7 @@ func (s *Script) scriptSub(call otto.FunctionCall) otto.Value {
 	}
 
 	key, fn := call.ArgumentList[0].String(), call.ArgumentList[1]
-	id, ch := mq.Subscribe(key)
+	id, ch := mq.Subscribe(key, false)
 
 	val, err := s.context.ToValue(id)
 	if err != nil {
@@ -143,7 +143,7 @@ func (s *Script) scriptUpdate(call otto.FunctionCall) otto.Value {
 	}
 
 	key, val := call.ArgumentList[0].String(), call.ArgumentList[1].String()
-	mq.Update(key, val)
+	mq.Update(key, val, false)
 	return otto.TrueValue()
 }
 

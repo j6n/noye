@@ -4,12 +4,14 @@ import "github.com/robertkrimen/otto"
 
 const base = `
 noye = _noye_bot;
+
 core = {
 	"manager": _core_manager,
 	"scripts": _core_scripts,
 	"load":    _core_storage_load,
 	"save":    _core_storage_save,
 };
+
 share = {
 	"update":      _share_update,
 	"subscribe":   _share_sub,
