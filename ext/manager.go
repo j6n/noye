@@ -104,6 +104,9 @@ func (m *Manager) Load(path string) error {
 func (m *Manager) Reload(name string) error {
 	if script, ok := m.scripts[name]; ok {
 		log.Debugf("trying to reload: %s\n", name)
+		for _, sub := range script.subs {
+			mq.Unsubscribe(sub)
+		}
 		delete(m.scripts, name)
 
 		source, err := ioutil.ReadFile(script.Path())
@@ -162,6 +165,18 @@ func (m *Manager) load(source, path string) error {
 		return otto.FalseValue()
 	}); err != nil {
 		log.Errorf("(%s) setting log: %s", name, err)
+		return err
+	}
+
+	if err := ctx.Set("init", func(call otto.FunctionCall) otto.Value {
+		if len(call.ArgumentList) < 1 || !call.ArgumentList[0].IsFunction() {
+			return otto.FalseValue()
+		}
+
+		script.inits = append(script.inits, call.ArgumentList[0])
+		return otto.TrueValue()
+	}); err != nil {
+		log.Errorf("(%s) setting init: %s", name, err)
 		return err
 	}
 
@@ -224,6 +239,12 @@ func (m *Manager) load(source, path string) error {
 	if _, err := ctx.Run(source); err != nil {
 		log.Errorf("(%s) loading script: %s\n", name, err)
 		return err
+	}
+
+	// call inits
+
+	for _, init := range script.inits {
+		init.Call(otto.NullValue())
 	}
 
 	// if we've gotten this far, the script is valid

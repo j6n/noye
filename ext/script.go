@@ -16,6 +16,9 @@ type Script struct {
 	commands  map[*regexp.Regexp]scriptFunc
 	callbacks map[string][]scriptFunc
 
+	subs  []int64
+	inits []otto.Value
+
 	context *otto.Otto
 }
 
@@ -29,6 +32,8 @@ func newScript(name, path, source string) *Script {
 		name: name, path: path, source: source,
 		commands:  make(map[*regexp.Regexp]scriptFunc),
 		callbacks: make(map[string][]scriptFunc),
+		inits:     make([]otto.Value, 0),
+		subs:      make([]int64, 0),
 		context:   context,
 	}
 }
