@@ -13,6 +13,7 @@ core = {
 };
 
 share = {
+	"init":        _share_init,
 	"update":      _share_update,
 	"subscribe":   _share_sub,
 	"unsubscribe": _share_unsub,
@@ -51,7 +52,8 @@ func (m *Manager) setDefaults(script *Script) {
 		"_core_storage_load": script.scriptGet,
 		"_core_storage_save": script.scriptSet,
 
-		"_share_sub":    script.scriptSub,
+		"_share_init":   script.scriptSubInit(true),
+		"_share_sub":    script.scriptSubInit(false),
 		"_share_unsub":  script.scriptUnsub,
 		"_share_update": script.scriptUpdate,
 

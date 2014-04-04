@@ -9,13 +9,11 @@ import (
 
 	"github.com/j6n/noye/logger"
 	"github.com/j6n/noye/noye"
-	"github.com/j6n/noye/store"
 
 	"github.com/robertkrimen/otto"
 )
 
 var log = logger.Get()
-var mq = store.NewQueue()
 
 // Manager holds a bunch of scripts and a safe proxy to the bot
 type Manager struct {
@@ -108,6 +106,11 @@ func (m *Manager) Load(path string) error {
 	return m.load(string(data), name, path)
 }
 
+// LoadString loads a source string, with a name and a path
+func (m *Manager) LoadString(source, name, path string) error {
+	return m.load(source, name, path)
+}
+
 // Reload tries to reload the named script
 func (m *Manager) Reload(name string) error {
 	if script, ok := m.scripts[name]; ok {
@@ -175,18 +178,6 @@ func (m *Manager) load(source, name, path string) error {
 		return err
 	}
 
-	if err := ctx.Set("init", func(call otto.FunctionCall) otto.Value {
-		if len(call.ArgumentList) < 1 || !call.ArgumentList[0].IsFunction() {
-			return otto.FalseValue()
-		}
-
-		script.inits = append(script.inits, call.ArgumentList[0])
-		return otto.TrueValue()
-	}); err != nil {
-		log.Errorf("(%s) setting init: %s", name, err)
-		return err
-	}
-
 	// this is kind of a mess, but it returnsa function
 	// it can represent a respond or listen object, depending on the path
 	build := func(path string) func(otto.FunctionCall) otto.Value {
@@ -246,12 +237,6 @@ func (m *Manager) load(source, name, path string) error {
 	if _, err := ctx.Run(source); err != nil {
 		log.Errorf("(%s) loading script: %s\n", name, err)
 		return err
-	}
-
-	// call inits
-
-	for _, init := range script.inits {
-		init.Call(otto.NullValue())
 	}
 
 	// if we've gotten this far, the script is valid

@@ -18,9 +18,7 @@ type Script struct {
 	commands  map[*regexp.Regexp]scriptFunc
 	callbacks map[string][]scriptFunc
 
-	subs  []int64
-	inits []otto.Value
-
+	subs    []int64
 	context *otto.Otto
 }
 
@@ -34,7 +32,6 @@ func newScript(name, path, source string) *Script {
 		name: name, path: path, source: source,
 		commands:  make(map[*regexp.Regexp]scriptFunc),
 		callbacks: make(map[string][]scriptFunc),
-		inits:     make([]otto.Value, 0),
 		subs:      make([]int64, 0),
 		context:   context,
 	}
@@ -86,34 +83,42 @@ func (s *Script) scriptGet(call otto.FunctionCall) otto.Value {
 	return val
 }
 
-// sub subscribes to the message queue for a string
-func (s *Script) scriptSub(call otto.FunctionCall) otto.Value {
-	if len(call.ArgumentList) < 2 || !call.ArgumentList[0].IsString() || !call.ArgumentList[1].IsFunction() {
-		return otto.NullValue()
-	}
-
-	key, fn := call.ArgumentList[0].String(), call.ArgumentList[1]
-	id, ch := mq.Subscribe(key, false)
-
-	val, err := s.context.ToValue(id)
-	if err != nil {
-		log.Errorf("(%s) convert val (sub): %s", s.Name(), err)
-		return otto.NullValue()
-	}
-
-	go func() {
-		for data := range ch {
-			val, err := s.context.ToValue(data)
-			if err != nil {
-				log.Errorf("(%s) convert val '%s': %s", s.Name(), data, err)
-				val = otto.NullValue()
-			}
-			fn.Call(fn, val)
+func (s *Script) scriptSubInit(init bool) func(otto.FunctionCall) otto.Value {
+	return func(call otto.FunctionCall) otto.Value {
+		if len(call.ArgumentList) < 2 || !call.ArgumentList[0].IsString() || !call.ArgumentList[1].IsFunction() {
+			return otto.NullValue()
 		}
-	}()
 
-	s.subs = append(s.subs, id)
-	return val
+		var id int64
+		var ch chan string
+
+		key, fn := call.ArgumentList[0].String(), call.ArgumentList[1]
+		if init {
+			id, ch = mq.Init(key, false)
+		} else {
+			id, ch = mq.Subscribe(key, false)
+		}
+
+		val, err := s.context.ToValue(id)
+		if err != nil {
+			log.Errorf("(%s) convert val (sub): %s", s.Name(), err)
+			return otto.NullValue()
+		}
+
+		go func() {
+			for data := range ch {
+				val, err := s.context.ToValue(data)
+				if err != nil {
+					log.Errorf("(%s) convert val '%s': %s", s.Name(), data, err)
+					val = otto.NullValue()
+				}
+				fn.Call(fn, val)
+			}
+		}()
+
+		s.subs = append(s.subs, id)
+		return val
+	}
 }
 
 // unsub unsubscribes to the message queue
