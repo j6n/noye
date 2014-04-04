@@ -99,7 +99,13 @@ func (m *Manager) Load(path string) error {
 		return err
 	}
 
-	return m.load(string(data), path)
+	name := filepath.Base(path)
+	if err := m.Reload(name); err == nil {
+		return nil
+	}
+
+	log.Debugf("trying to load: %s\n", name)
+	return m.load(string(data), name, path)
 }
 
 // Reload tries to reload the named script
@@ -113,10 +119,11 @@ func (m *Manager) Reload(name string) error {
 
 		source, err := ioutil.ReadFile(script.Path())
 		if err != nil {
+			log.Debugf("can't reload %s: %s\n", script.Path(), err)
 			return err
 		}
 
-		return m.load(string(source), script.Path())
+		return m.load(string(source), name, script.Path())
 	}
 
 	// script not loaded
@@ -131,10 +138,8 @@ func (m *Manager) Scripts() (res []noye.Script) {
 	return
 }
 
-func (m *Manager) load(source, path string) error {
-	name := filepath.Base(path)
+func (m *Manager) load(source, name, path string) error {
 	script := newScript(name, path, source)
-
 	// copy pointer
 	ctx := script.context
 

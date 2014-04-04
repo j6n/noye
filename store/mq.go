@@ -34,7 +34,6 @@ func (q *Queue) Update(key, val string, private bool) {
 
 	q.mu.RLock()
 	defer q.mu.RUnlock()
-
 	if ids, ok := q.clients[key]; ok {
 		for id := range ids {
 			if ch, ok := q.mapping[id]; ok && ch != nil {
