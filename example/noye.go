@@ -6,18 +6,29 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/j6n/noye/store"
+
 	"github.com/j6n/noye/irc"
 	"github.com/j6n/noye/logger"
 )
 
-var log = logger.Get()
-var server string
+var (
+	log  = logger.Get()
+	conf = NewConfig()
+	db   *store.DB
+)
 
 func init() {
 	runtime.GOMAXPROCS(4)
 
-	if server = os.Getenv("NOYE_SERVER"); server == "" {
-		server = "localhost:6667"
+	db, _ = store.NewDB()
+	if err := db.CheckTable("config", store.KvSchema); err != nil {
+		log.Fatalf("can't create table %s:%s\n", "config", err)
+	}
+
+	m := conf.toMap()
+	for k, v := range m {
+		db.Set("config", k, v)
 	}
 }
 
@@ -37,10 +48,10 @@ func main() {
 	}
 
 	reconnect := true
-	go func() { <-quit; bot.Quit(); reconnect = false }()
+	go func() { <-quit; reconnect = false; bot.Quit() }()
 
 	for reconnect {
-		if err := bot.Dial(server, "noye", "museun"); err != nil {
+		if err := bot.Dial(conf.Server, conf.Nick, conf.Nick); err != nil {
 			return
 		}
 
