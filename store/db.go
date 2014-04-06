@@ -3,7 +3,6 @@ package store
 import (
 	"fmt"
 	"log"
-	"os"
 	"path"
 
 	"github.com/jmoiron/sqlx"
@@ -16,13 +15,10 @@ var (
 )
 
 func init() {
-	if dbPath = os.Getenv("OPENSHIFT_DATA"); dbPath == "" {
-		dbPath = "."
-	}
+	dbPath = "."
 
 	var err error
-	db, err = NewDB()
-	if err != nil {
+	if db = NewDB(); db == nil {
 		log.Fatalf("loading db: %s\n", err)
 	}
 }
@@ -47,16 +43,14 @@ func Set(table, key, data string) (err error) {
 
 type DB struct{ *sqlx.DB }
 
-func NewDB() (db *DB, err error) {
+func NewDB() (db *DB) {
 	if db == nil {
-		var temp *sqlx.DB
-		if temp, err = sqlx.Open("sqlite3", path.Join(dbPath, "noye.db")); err != nil {
-			return
+		temp, err := sqlx.Open("sqlite3", path.Join(dbPath, "noye.db"))
+		if err != nil {
+			return nil
 		}
-
 		db = &DB{temp}
 	}
-
 	return
 }
 
