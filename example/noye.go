@@ -36,12 +36,16 @@ func main() {
 		}
 	}
 
-	if err := bot.Dial(server, "noye", "museun"); err != nil {
-		return
-	}
+	reconnect := true
+	go func() { <-quit; bot.Quit(); reconnect = false }()
 
-	go func() { <-quit; bot.Quit() }()
-	<-bot.Wait()
+	for reconnect {
+		if err := bot.Dial(server, "noye", "museun"); err != nil {
+			return
+		}
+
+		<-bot.Wait()
+	}
 }
 
 func getFiles(base string) <-chan string {

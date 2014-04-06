@@ -12,7 +12,7 @@ func parse(raw string) noye.IrcMessage {
 	// :source command [args] :message
 	if raw[0] == ':' {
 		if i := strings.Index(raw, " "); i >= -1 {
-			msg.Source = raw[1:i]
+			msg.Source = parseUser(raw[1:i])
 			raw = raw[i+1 : len(raw)]
 		}
 	}
@@ -32,17 +32,26 @@ func parse(raw string) noye.IrcMessage {
 	return msg
 }
 
-func ircToMsg(msg noye.IrcMessage) noye.Message {
-	out := noye.Message{
-		From: strings.Split(msg.Source, "!")[0],
-		Text: msg.Text,
+func parseUser(raw string) noye.User {
+	if strings.Index(raw, "!") == -1 {
+		return noye.User{Nick: raw}
 	}
+
+	first := strings.Split(raw, "!")
+	nick, second := first[0], strings.Split(first[1], "@")
+	user, host := second[0], second[1]
+
+	return noye.User{nick, user, host}
+}
+
+func ircToMsg(msg noye.IrcMessage) noye.Message {
+	out := noye.Message{From: msg.Source, Text: msg.Text}
 
 	switch msg.Args[0][0] {
 	case '#', '&':
 		out.Target = msg.Args[0]
 	default:
-		out.Target = out.From
+		out.Target = out.From.Nick
 	}
 
 	return out

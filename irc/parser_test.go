@@ -2,6 +2,7 @@ package irc
 
 import (
 	"fmt"
+
 	"github.com/j6n/noye/noye"
 
 	"testing"
@@ -9,29 +10,30 @@ import (
 )
 
 func TestParser(t *testing.T) {
+	user := parseUser("foo!bar@irc.localhost")
 	tests := map[string]noye.IrcMessage{
 		"local join": {
 			Raw:     ":foo!bar@irc.localhost JOIN #foobar",
-			Source:  "foo!bar@irc.localhost",
+			Source:  user,
 			Command: "JOIN",
 			Args:    []string{"#foobar"},
 		},
 		"join": {
 			Raw:     ":foo!bar@irc.localhost JOIN :#foobar",
-			Source:  "foo!bar@irc.localhost",
+			Source:  user,
 			Command: "JOIN",
 			Args:    []string{"#foobar"},
 		},
 		"privmsg": {
 			Raw:     ":foo!bar@irc.localhost PRIVMSG #foobar :hello world",
-			Source:  "foo!bar@irc.localhost",
+			Source:  user,
 			Command: "PRIVMSG",
 			Args:    []string{"#foobar"},
 			Text:    "hello world",
 		},
 		"part": {
 			Raw:     ":foo!bar@irc.localhost PART #foobar :bye",
-			Source:  "foo!bar@irc.localhost",
+			Source:  user,
 			Command: "PART",
 			Args:    []string{"#foobar"},
 			Text:    "bye",
@@ -50,14 +52,14 @@ func TestParser(t *testing.T) {
 		},
 		"no text": {
 			Raw:     ":irc.localhost 004 museun irc.localhost beware1.6.2 dgikoswx biklmnoprstv",
-			Source:  "irc.localhost",
+			Source:  parseUser("irc.localhost"),
 			Command: "004",
 			Args:    []string{"museun", "irc.localhost", "beware1.6.2", "dgikoswx", "biklmnoprstv"},
 			Text:    "",
 		},
 		"many colons": {
 			Raw:     ":foo!bar@irc.localhost PRIVMSG hello :hello world :) for more :colons",
-			Source:  "foo!bar@irc.localhost",
+			Source:  user,
 			Command: "PRIVMSG",
 			Args:    []string{"hello"},
 			Text:    "hello world :) for more :colons",
@@ -78,12 +80,12 @@ func TestConvert(t *testing.T) {
 		in  noye.IrcMessage
 		out noye.Message
 	}
-
+	user := parseUser("foo!bar@irc.localhost")
 	tests := map[string]message{
 		"private": {
 			in: parse(":foo!bar@irc.localhost PRIVMSG hello :hello world"),
 			out: noye.Message{
-				From:   "foo",
+				From:   user,
 				Target: "foo",
 				Text:   "hello world",
 			},
@@ -91,7 +93,7 @@ func TestConvert(t *testing.T) {
 		"public": {
 			in: parse(":foo!bar@irc.localhost PRIVMSG #hello :hello world"),
 			out: noye.Message{
-				From:   "foo",
+				From:   user,
 				Target: "#hello",
 				Text:   "hello world",
 			},
