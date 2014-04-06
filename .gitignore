@@ -22,4 +22,4 @@ _testmain.go
 *.exe
 *.db
 *.yaml
-*.js
+example/scripts/*.js
