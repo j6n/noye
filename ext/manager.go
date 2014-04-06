@@ -19,12 +19,15 @@ var log = logger.Get()
 type Manager struct {
 	scripts map[string]*Script
 	context noye.Bot
+
+	waiting map[string]*Script
 }
 
 // New returns a new Manager
 func New(ctx noye.Bot) *Manager {
 	m := &Manager{
 		scripts: make(map[string]*Script),
+		waiting: make(map[string]*Script),
 		context: ctx,
 	}
 	if err := m.ReloadBase(); err != nil {
@@ -283,7 +286,7 @@ func (m *Manager) load(source, name, path string) error {
 	// if we've gotten this far, the script is valid
 	m.scripts[name] = script
 
-	close(script.done)
+	script.doInits()
 	return nil
 }
 

@@ -19,8 +19,8 @@ type Script struct {
 	callbacks map[string][]scriptFunc
 	cleanup   []scriptFunc
 
-	subs []int64
-	done chan struct{}
+	subs    []int64
+	updates []inits
 
 	context *otto.Otto
 }
@@ -38,8 +38,8 @@ func newScript(name, path, source string) *Script {
 		callbacks: make(map[string][]scriptFunc),
 		cleanup:   make([]scriptFunc, 0),
 
-		subs: make([]int64, 0),
-		done: make(chan struct{}),
+		subs:    make([]int64, 0),
+		updates: make([]inits, 0),
 
 		context: context,
 	}
@@ -98,31 +98,39 @@ func (s *Script) scriptGet(call otto.FunctionCall) otto.Value {
 	return val
 }
 
+type inits struct {
+	table string
+	init  bool
+	obj   *otto.Object
+}
+
 // subInit subs and fills channel with default values
 func (s *Script) scriptSubInit(init bool) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 		if len(call.ArgumentList) < 2 || !call.ArgumentList[0].IsString() || !call.ArgumentList[1].IsFunction() {
-			return otto.NullValue()
+			return otto.FalseValue()
 		}
 
-		var id int64
+		key, fn := call.ArgumentList[0].String(), call.ArgumentList[1].Object()
+		s.updates = append(s.updates, inits{key, init, fn})
+		return otto.TrueValue()
+	}
+}
+
+func (s *Script) doInits() {
+	for _, v := range s.updates {
+		fn := v.obj
 		var ch chan string
+		var id int64
 
-		key, fn := call.ArgumentList[0].String(), call.ArgumentList[1]
-		if init {
-			id, ch = mq.Init(s.Name(), key, false)
+		if v.init {
+			id, ch = mq.Init(s.Name(), v.table, false)
 		} else {
-			id, ch = mq.Subscribe(key, false)
+			id, ch = mq.Subscribe(v.table, false)
 		}
 
-		val, err := s.context.ToValue(id)
-		if err != nil {
-			log.Errorf("(%s) convert val (sub): %s", s.Name(), err)
-			return otto.NullValue()
-		}
-
-		go func(ch chan string, s *Script) {
-			<-s.done
+		go func(o *otto.Object) {
+			fn := o.Value()
 			for data := range ch {
 				val, err := s.context.ToValue(data)
 				if err != nil {
@@ -134,10 +142,9 @@ func (s *Script) scriptSubInit(init bool) func(otto.FunctionCall) otto.Value {
 					log.Errorf("(%s) calling fn: %s", s.Name(), err)
 				}
 			}
-		}(ch, s)
+		}(fn)
 
 		s.subs = append(s.subs, id)
-		return val
 	}
 }
 

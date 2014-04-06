@@ -15,7 +15,6 @@ func (b *Broadcast) Init(table, key string, private bool) (int64, chan string) {
 	debug("'%d' subscribed to '%s' (%t)\n", id, key, private)
 	data, err := b.DB.Get(ConfigTable, key)
 	if err != nil {
-		debug("'%d' couldn't get '%s' data for '%s' (%t): %s\n", id, ConfigTable, key, private, err)
 		return id, ch
 	}
 
@@ -24,7 +23,6 @@ func (b *Broadcast) Init(table, key string, private bool) (int64, chan string) {
 
 	data, err = Get(table, key)
 	if err != nil {
-		debug("'%d' couldn't get '%s' (script) data for '%s' (%t): %s\n", id, table, key, private, err)
 		return id, ch
 	}
 

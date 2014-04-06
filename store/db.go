@@ -105,6 +105,7 @@ func (d *DB) Get(table, key string) (string, error) {
 	temp := map[string]interface{}{}
 	row := d.QueryRowx(fmt.Sprintf("SELECT v FROM %s WHERE k = ?", table), key)
 	if err := row.MapScan(temp); err != nil {
+		log.Errorf("no rows for %s, %s: %s\n", table, key, err)
 		return "", err
 	}
 

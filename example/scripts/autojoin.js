@@ -1,4 +1,4 @@
-var autojoin = []
+var autojoin = [];
 var append = function(data) { autojoin = _.union(autojoin, JSON.parse(data)) }
 
 share.init("channels", append);
@@ -36,5 +36,5 @@ listen("001", function(msg) {
 })
 
 cleanup(function(){
-  core.save("autojoin", JSON.stringify(autojoin))
+  core.save("channels", JSON.stringify(autojoin))
 })
