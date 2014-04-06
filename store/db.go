@@ -35,10 +35,6 @@ CREATE TABLE IF NOT EXISTS %s (
 );
 `
 
-func GetSession() *DB {
-	return db
-}
-
 func Get(table, key string) (string, error) {
 	table = table + "_script"
 	return db.Get(table, key)
@@ -51,13 +47,17 @@ func Set(table, key, data string) (err error) {
 
 type DB struct{ *sqlx.DB }
 
-func NewDB() (*DB, error) {
-	temp, err := sqlx.Open("sqlite3", path.Join(dbPath, "noye.db"))
-	if err != nil {
-		return nil, err
+func NewDB() (db *DB, err error) {
+	if db == nil {
+		var temp *sqlx.DB
+		if temp, err = sqlx.Open("sqlite3", path.Join(dbPath, "noye.db")); err != nil {
+			return
+		}
+
+		db = &DB{temp}
 	}
 
-	return &DB{temp}, nil
+	return
 }
 
 func (d *DB) Close() {
