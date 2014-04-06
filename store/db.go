@@ -61,7 +61,7 @@ func NewDB() (db *DB) {
 }
 
 func (d *DB) Close() {
-	d.Close()
+	d.DB.DB.Close()
 }
 
 func (d *DB) Set(table, key, data string) (err error) {

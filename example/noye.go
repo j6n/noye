@@ -6,6 +6,8 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/j6n/noye/ext"
+
 	"github.com/j6n/noye/config"
 	"github.com/j6n/noye/store"
 
@@ -27,8 +29,7 @@ func init() {
 		log.Fatalf("can't create table %s:%s\n", "config", err)
 	}
 
-	m := conf.ToMap()
-	for k, v := range m {
+	for k, v := range conf.ToMap() {
 		db.Set("config", k, v)
 	}
 }
@@ -43,20 +44,14 @@ func main() {
 	bot.Manager().LoadScripts("./scripts")
 
 	reconnect := true
-	go func() {
-		<-quit
+	go func() { <-quit; reconnect = false; bot.Quit() }()
 
-		reconnect = false
-		bot.Quit()
-
+	defer func() {
 		for _, script := range bot.Manager().Scripts() {
 			script.Cleanup()
 		}
 
-		// give some time to save
-		<-time.After(3 * time.Second)
 		db.Close()
-		// give some time to save
 		<-time.After(3 * time.Second)
 	}()
 
@@ -65,6 +60,15 @@ func main() {
 			return
 		}
 
+		<-bot.Ready()
+		broadcastConfig()
+
 		<-bot.Wait()
+	}
+}
+
+func broadcastConfig() {
+	for key, val := range conf.ToMap() {
+		ext.Broadcast(key, val)
 	}
 }

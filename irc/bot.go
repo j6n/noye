@@ -15,7 +15,9 @@ type Bot struct {
 	conn    noye.Conn
 	manager *ext.Manager
 
-	stop *Signal
+	queued []noye.IrcMessage
+
+	stop, ready *Signal
 }
 
 // New takes a noye.Conn and returns a new Bot
@@ -34,6 +36,8 @@ func (b *Bot) Dial(addr, nick, user string) (err error) {
 	}
 
 	b.stop = NewSignal()
+	b.ready = NewSignal()
+	b.queued = make([]noye.IrcMessage, 24)
 
 	b.Send("NICK %s", nick)
 	b.Send("USER %s * 0 :%s", user, "noye in go!")
@@ -74,6 +78,10 @@ func (b *Bot) Wait() <-chan struct{} {
 	return b.stop.Wait()
 }
 
+func (b *Bot) Ready() <-chan struct{} {
+	return b.ready.Wait()
+}
+
 // Close attempts to close the bots connection
 func (b *Bot) Close() {
 	log.Debugf("Closing the bot\n")
@@ -100,23 +108,46 @@ func (b *Bot) readLoop() {
 			return
 		}
 
-		b.handle(line)
+		if !b.ready.Done() {
+			b.handlePre(line)
+		} else {
+			b.handlePost(line)
+		}
 	}
 }
 
-func (b *Bot) handle(line string) {
+func (b *Bot) handlePre(line string) {
 	msg := Parse(line)
-
-	// built-in switch
 	switch msg.Command {
 	case "PING":
 		b.Send("PONG %s", msg.Text)
-		return
-	case "PRIVMSG":
-		b.manager.Respond(ircToMsg(msg))
-		return
+	case "001":
+		b.ready.Close()
 	}
 
-	// default listeners
-	b.manager.Listen(msg)
+	b.queued = append(b.queued, msg)
+}
+
+func (b *Bot) handlePost(line string) {
+	msg := Parse(line)
+
+	do := func(msg noye.IrcMessage) {
+		switch msg.Command {
+		case "PRIVMSG":
+			if b.ready.Done() {
+				b.manager.Respond(ircToMsg(msg))
+			}
+		default:
+			if b.ready.Done() {
+				b.manager.Listen(msg)
+			}
+		}
+	}
+
+	for _, q := range b.queued {
+		do(q)
+	}
+
+	b.queued = make([]noye.IrcMessage, 0)
+	do(msg)
 }

@@ -9,7 +9,7 @@ import (
 var log = logger.Get()
 var Debug bool
 
-func debug(f string, a ...interface{}) {
+var debug = func(f string, a ...interface{}) {
 	if Debug {
 		log.Debugf(f, a...)
 	}
@@ -59,7 +59,7 @@ func (q *Queue) Update(key, val string, private bool) {
 		}
 	}
 
-	debug("sending '%s' to: %v\n", val, temp)
+	debug("sending %s: '%s' to %v\n", key, val, temp)
 }
 
 func (q *Queue) Subscribe(key string, private bool) (int64, chan string) {
