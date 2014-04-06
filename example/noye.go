@@ -3,9 +3,9 @@ package main
 import (
 	"os"
 	"os/signal"
-	"path/filepath"
 	"runtime"
 
+	"github.com/j6n/noye/config"
 	"github.com/j6n/noye/store"
 
 	"github.com/j6n/noye/irc"
@@ -14,19 +14,19 @@ import (
 
 var (
 	log  = logger.Get()
-	conf = NewConfig()
+	conf = config.NewConfig()
 	db   *store.DB
 )
 
 func init() {
 	runtime.GOMAXPROCS(4)
 
-	db, _ = store.NewDB()
+	db = store.NewDB()
 	if err := db.CheckTable("config", store.KvSchema); err != nil {
 		log.Fatalf("can't create table %s:%s\n", "config", err)
 	}
 
-	m := conf.toMap()
+	m := conf.ToMap()
 	for k, v := range m {
 		db.Set("config", k, v)
 	}
@@ -37,15 +37,6 @@ func main() {
 	signal.Notify(quit, os.Interrupt)
 
 	bot := irc.New(&irc.Connection{})
-	ext := bot.Manager()
-
-	scripts := getFiles("./scripts")
-	for script := range scripts {
-		log.Infof("found script: '%s'\n", script)
-		if err := ext.Load(script); err != nil {
-			log.Errorf("loading script '%s': '%s'\n", script, err)
-		}
-	}
 
 	reconnect := true
 	go func() { <-quit; reconnect = false; bot.Quit() }()
@@ -57,30 +48,4 @@ func main() {
 
 		<-bot.Wait()
 	}
-}
-
-func getFiles(base string) <-chan string {
-	scripts := make(chan string)
-	go func() {
-		walker := func(fp string, fi os.FileInfo, err error) error {
-			if err != nil || !!fi.IsDir() {
-				return nil
-			}
-			matched, err := filepath.Match("*.js", fi.Name())
-			if err != nil {
-				return err
-			}
-			if matched {
-				scripts <- fp
-			}
-			return nil
-		}
-
-		if err := filepath.Walk(base, walker); err != nil {
-			log.Errorf("Walking '%s': %s\n", base, err)
-		}
-		close(scripts)
-	}()
-
-	return scripts
 }

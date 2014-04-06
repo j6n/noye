@@ -1,13 +1,17 @@
-package main
+package config
 
 import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
 
+	"github.com/j6n/noye/logger"
 	"gopkg.in/yaml.v1"
 )
 
+var log = logger.Get()
+
+// Config represents an irc configuration
 type Config struct {
 	Auth     []string
 	Channels []string
@@ -15,6 +19,7 @@ type Config struct {
 	Nick, User, Server string
 }
 
+// NewConfig tries to load config.yaml, or a default
 func NewConfig() *Config {
 	conf := &Config{}
 
@@ -48,15 +53,8 @@ newConfig:
 	return conf
 }
 
-func (c *Config) init() {
-	c.Nick = "noye"
-	c.User = "museun"
-	c.Server = "localhost:6667"
-	c.Channels = []string{"#noye"}
-	c.Auth = []string{"museun"}
-}
-
-func (c *Config) toMap() map[string]string {
+// ToMap shittily converts the config to a string map
+func (c *Config) ToMap() map[string]string {
 	data, _ := json.Marshal(c)
 	m := make(map[string]interface{})
 	out := make(map[string]string)
@@ -69,4 +67,12 @@ func (c *Config) toMap() map[string]string {
 	}
 
 	return out
+}
+
+func (c *Config) init() {
+	c.Nick = "noye"
+	c.User = "museun"
+	c.Server = "localhost:6667"
+	c.Channels = []string{"#noye"}
+	c.Auth = []string{"museun"}
 }
