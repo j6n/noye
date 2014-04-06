@@ -2,7 +2,6 @@ package irc
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/j6n/noye/ext"
 	"github.com/j6n/noye/logger"
@@ -13,9 +12,7 @@ var log = logger.Get()
 
 // Bot encapsulates all the parts to run a bot
 type Bot struct {
-	conn noye.Conn
-	once sync.Once
-
+	conn    noye.Conn
 	manager *ext.Manager
 
 	stop, ready *Signal
@@ -23,12 +20,7 @@ type Bot struct {
 
 // New takes a noye.Conn and returns a new Bot
 func New(conn noye.Conn) *Bot {
-	bot := &Bot{
-		conn:  conn,
-		stop:  NewSignal(),
-		ready: NewSignal(),
-	}
-
+	bot := &Bot{conn: conn}
 	bot.manager = ext.New(bot)
 	return bot
 }
@@ -40,6 +32,9 @@ func (b *Bot) Dial(addr, nick, user string) (err error) {
 		log.Errorf("Failed to connect to '%s': %s\n", err)
 		return
 	}
+
+	b.stop = NewSignal()
+	b.ready = NewSignal()
 
 	b.Send("NICK %s", nick)
 	b.Send("USER %s * 0 :%s", user, "noye in go!")
@@ -87,11 +82,8 @@ func (b *Bot) Ready() <-chan struct{} {
 
 // Close attempts to close the bots connection
 func (b *Bot) Close() {
-	b.once.Do(func() {
-		log.Debugf("Closing the bot\n")
-		b.conn.Close()
-		b.stop.Close()
-	})
+	log.Debugf("Closing the bot\n")
+	b.conn.Close()
 }
 
 // Manager returns the script manager
@@ -100,7 +92,7 @@ func (b *Bot) Manager() noye.Manager {
 }
 
 func (b *Bot) readLoop() {
-	defer func() { b.Close() }()
+	defer func() { b.Close(); b.stop.Close() }()
 
 	var (
 		line string

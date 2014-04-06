@@ -49,7 +49,7 @@ func (q *Queue) Subscribe(key string, private bool) (int64, chan string) {
 		return 0, nil
 	}
 
-	id, ch := q.next(), make(chan string)
+	id, ch := q.next(), make(chan string, 32)
 
 	q.mu.Lock()
 	defer q.mu.Unlock()

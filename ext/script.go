@@ -94,7 +94,7 @@ func (s *Script) scriptSubInit(init bool) func(otto.FunctionCall) otto.Value {
 
 		key, fn := call.ArgumentList[0].String(), call.ArgumentList[1]
 		if init {
-			id, ch = mq.Init(key, false)
+			id, ch = mq.Init(s.Name(), key, false)
 		} else {
 			id, ch = mq.Subscribe(key, false)
 		}

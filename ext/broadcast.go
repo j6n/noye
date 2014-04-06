@@ -11,9 +11,16 @@ type broadcaster struct {
 
 // Init calls Subscribe, and then loads data from the shared table at key
 // then it'll send the data over the channel
-func (b *broadcaster) Init(key string, private bool) (int64, chan string) {
+func (b *broadcaster) Init(table, key string, private bool) (int64, chan string) {
 	id, ch := b.Queue.Subscribe(key, private)
 	data, err := store.Get("shared", key)
+	if err != nil {
+		return id, ch
+	}
+
+	ch <- data
+
+	data, err = store.Get(table, key)
 	if err != nil {
 		return id, ch
 	}
