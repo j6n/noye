@@ -50,6 +50,7 @@ func (w wrappedMessage) Send(f string, a ...interface{}) {
 
 // Respond takes a noye.Message and delegates it to the scripts
 func (m *Manager) Respond(msg noye.Message) {
+	log.Infof("trying a respond for: (%s) <%s> %s\n", msg.Target, msg.From.Nick, msg.Text)
 	wrap := wrappedMessage{msg, msg.From.Nick != msg.Target, m.context}
 	for _, script := range m.scripts {
 		val, err := script.context.ToValue(wrap)

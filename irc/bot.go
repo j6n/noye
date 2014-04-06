@@ -117,10 +117,12 @@ func (b *Bot) handle(line string) {
 	switch msg.Command {
 	case "PING":
 		b.Send("PONG %s", msg.Text)
+		return
 	case "001":
 		b.ready.Close()
 	case "PRIVMSG":
 		b.manager.Respond(ircToMsg(msg))
+		return
 	}
 
 	// default listeners

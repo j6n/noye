@@ -37,6 +37,7 @@ func main() {
 	signal.Notify(quit, os.Interrupt)
 
 	bot := irc.New(&irc.Connection{})
+	bot.Manager().LoadScripts("./scripts")
 
 	reconnect := true
 	go func() { <-quit; reconnect = false; bot.Quit() }()
