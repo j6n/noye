@@ -36,7 +36,7 @@ type wrappedMessage struct {
 }
 
 func (w wrappedMessage) Reply(f string, a ...interface{}) {
-	w.Send("%s: %s", w.From, fmt.Sprintf(f, a...))
+	w.Send("%s: %s", w.From.Nick, fmt.Sprintf(f, a...))
 }
 
 func (w wrappedMessage) Send(f string, a ...interface{}) {

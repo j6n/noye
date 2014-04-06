@@ -2,8 +2,8 @@ package store
 
 import (
 	"fmt"
-	"log"
 	"path"
+	"strings"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
@@ -19,7 +19,7 @@ func init() {
 
 	var err error
 	if db = NewDB(); db == nil {
-		log.Fatalf("loading db: %s\n", err)
+		panic(fmt.Errorf("loading db: %s\n", err))
 	}
 }
 
@@ -31,13 +31,19 @@ CREATE TABLE IF NOT EXISTS %s (
 );
 `
 
+func fixScriptName(script string) string {
+	script = script + "_script"
+	script = strings.Replace(script, ".", "_", -1)
+	return script
+}
+
 func Get(table, key string) (string, error) {
-	table = table + "_script"
+	table = fixScriptName(table)
 	return db.Get(table, key)
 }
 
 func Set(table, key, data string) (err error) {
-	table = table + "_script"
+	table = fixScriptName(table)
 	return db.Set(table, key, data)
 }
 
@@ -60,21 +66,18 @@ func (d *DB) Close() {
 
 func (d *DB) Set(table, key, data string) (err error) {
 	if err := d.CheckTable(table, KvSchema); err != nil {
-		log.Println("err check table:", err)
 		return err
 	}
 
 	tx, err := d.Beginx()
 	if err != nil {
-		log.Println("err begin:", err)
 		return err
 	}
 	input := []byte(data)
 
 	// try update, this is awful
-	res, err := tx.Exec(fmt.Sprintf("UPDATE %s SET v = ? WHERE k = ?", table), input, key)
+	res, err := tx.Execv(fmt.Sprintf("UPDATE %s SET v = ? WHERE k = ?", table), input, key)
 	if err != nil {
-		log.Println("err exec:", err)
 		return err
 	}
 
@@ -85,7 +88,7 @@ func (d *DB) Set(table, key, data string) (err error) {
 	}
 
 	// try insert
-	_, err = tx.Exec(fmt.Sprintf("INSERT INTO %s (k, v) VALUES (?, ?);", table), key, input)
+	_, err = tx.Execv(fmt.Sprintf("INSERT INTO %s (k, v) VALUES (?, ?);", table), key, input)
 	if err == nil {
 		tx.Commit()
 	}
@@ -113,7 +116,7 @@ func (d *DB) Get(table, key string) (string, error) {
 }
 
 func (d *DB) CheckTable(table, schema string) error {
-	res, err := d.Exec("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?;", table)
+	res, err := d.Execv("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?;", table)
 	if err != nil {
 		return err
 	}

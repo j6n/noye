@@ -83,6 +83,7 @@ func (s *Script) scriptGet(call otto.FunctionCall) otto.Value {
 	return val
 }
 
+// subInit subs and fills channel with default values
 func (s *Script) scriptSubInit(init bool) func(otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 		if len(call.ArgumentList) < 2 || !call.ArgumentList[0].IsString() || !call.ArgumentList[1].IsFunction() {

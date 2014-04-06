@@ -1,6 +1,19 @@
 package store
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/j6n/noye/logger"
+)
+
+var log = logger.Get()
+var Debug bool
+
+func debug(f string, a ...interface{}) {
+	if Debug {
+		log.Debugf(f, a...)
+	}
+}
 
 type Queue struct {
 	clients map[string]map[int64]struct{}
@@ -29,23 +42,30 @@ func (q *Queue) Blacklist(keys ...string) {
 func (q *Queue) Update(key, val string, private bool) {
 	if _, ok := q.private[key]; ok && !private {
 		// can't broadcast that
+		debug("can't broadcast on '%s' '%t'\n", key, private)
 		return
 	}
 
 	q.mu.RLock()
 	defer q.mu.RUnlock()
+
+	debug("sending '%s' to:", val)
 	if ids, ok := q.clients[key]; ok {
 		for id := range ids {
 			if ch, ok := q.mapping[id]; ok && ch != nil {
+				debug(" %d", id)
 				ch <- val
 			}
 		}
 	}
+
+	debug("\n", val)
 }
 
 func (q *Queue) Subscribe(key string, private bool) (int64, chan string) {
 	if _, ok := q.private[key]; ok && !private {
 		// can't listen to that
+		debug("can't listen on '%s' '%t'\n", key, private)
 		return 0, nil
 	}
 
@@ -60,6 +80,8 @@ func (q *Queue) Subscribe(key string, private bool) (int64, chan string) {
 	}
 
 	q.mapping[id] = ch
+
+	debug("'%d' subscribing to: %s (%t)\n", id, key, private)
 	return id, ch
 }
 
