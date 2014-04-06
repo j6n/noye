@@ -2,6 +2,7 @@ package store
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path"
 
@@ -20,12 +21,11 @@ func init() {
 	}
 }
 
-var schema = `
-CREATE TABLE IF NOT EXISTS scripts (
-	n	varchar(255) NOT NULL,
-	o   varchar(255) NOT NULL,
-	d	BLOB,
-	PRIMARY KEY(n)
+const tableSchema = `
+CREATE TABLE IF NOT EXISTS %s (
+	k	varchar(255) NOT NULL,
+	v	BLOB,
+	PRIMARY KEY(k)
 );
 `
 
@@ -35,46 +35,69 @@ func GetSession() (db *sqlx.DB, err error) {
 		if err != nil {
 			return
 		}
-		db.Execf(schema)
 	}
 
 	return
 }
 
-func Get(table, key string) (string, error) {
+func checkTable(table string) (*sqlx.DB, error, bool) {
 	sess, err := GetSession()
 	if err != nil {
+		log.Println("err get sess:", err)
+		return sess, err, false
+	}
+
+	res, err := sess.Exec("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?;", table)
+	if err != nil {
+		return sess, err, false
+	}
+
+	if i, _ := res.RowsAffected(); i == 0 {
+		sess.Execf(fmt.Sprintf(tableSchema, table))
+	}
+
+	return sess, err, true
+}
+
+func Get(table, key string) (string, error) {
+	table = table + "_script"
+	sess, err, ok := checkTable(table)
+	if err != nil || !ok {
 		return "", err
 	}
 
 	temp := map[string]interface{}{}
-	row := sess.QueryRowx("SELECT d FROM scripts WHERE n = ? AND o = ?", key, table)
+	row := sess.QueryRowx(fmt.Sprintf("SELECT v FROM %s WHERE k = ?", table), key)
 	if err := row.MapScan(temp); err != nil {
 		return "", err
 	}
 
-	if res, ok := temp["d"].(string); ok {
+	if res, ok := temp["v"].(string); ok {
 		return res, nil
 	}
 
-	return "", fmt.Errorf("couldn't find '%s'/'%s' on scripts", key, table)
+	return "", fmt.Errorf("couldn't find '%s' on '%s'", key, table)
 }
 
 func Set(table, key, data string) (err error) {
-	sess, err := GetSession()
-	if err != nil {
+	table = table + "_script"
+	sess, err, ok := checkTable(table)
+	if err != nil || !ok {
+		log.Println("err check table:", err)
 		return err
 	}
 
 	tx, err := sess.Beginx()
 	if err != nil {
+		log.Println("err begin:", err)
 		return err
 	}
 	input := []byte(data)
 
-	// try update
-	res, err := tx.Exec("UPDATE scripts SET d = ? WHERE n = ? AND o = ?", input, key, table)
+	// try update, this is awful
+	res, err := tx.Exec(fmt.Sprintf("UPDATE %s SET v = ? WHERE k = ?", table), input, key)
 	if err != nil {
+		log.Println("err exec:", err)
 		return err
 	}
 
@@ -85,7 +108,7 @@ func Set(table, key, data string) (err error) {
 	}
 
 	// try insert
-	_, err = tx.Exec("INSERT INTO scripts (d, n, o) VALUES (?, ?, ?)", input, key, table)
+	_, err = tx.Exec(fmt.Sprintf("INSERT INTO %s (k, v) VALUES (?, ?);", table), key, input)
 	if err == nil {
 		tx.Commit()
 	}
