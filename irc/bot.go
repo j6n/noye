@@ -133,6 +133,8 @@ func (b *Bot) handlePost(line string) {
 
 	do := func(msg noye.IrcMessage) {
 		switch msg.Command {
+		case "PING":
+			b.Send("PONG %s", msg.Text)
 		case "PRIVMSG":
 			if b.ready.Done() {
 				b.manager.Respond(ircToMsg(msg))
