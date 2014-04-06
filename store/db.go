@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	db     *sqlx.DB
+	db     *DB
 	dbPath string
 )
 
@@ -19,9 +19,15 @@ func init() {
 	if dbPath = os.Getenv("OPENSHIFT_DATA"); dbPath == "" {
 		dbPath = "."
 	}
+
+	var err error
+	db, err = NewDB()
+	if err != nil {
+		log.Fatalf("loading db: %s\n", err)
+	}
 }
 
-const tableSchema = `
+const KvSchema = `
 CREATE TABLE IF NOT EXISTS %s (
 	k	varchar(255) NOT NULL,
 	v	BLOB,
@@ -29,65 +35,42 @@ CREATE TABLE IF NOT EXISTS %s (
 );
 `
 
-func GetSession() (db *sqlx.DB, err error) {
-	if db == nil {
-		db, err = sqlx.Open("sqlite3", path.Join(dbPath, "noye.db"))
-		if err != nil {
-			return
-		}
-	}
-
-	return
-}
-
-func checkTable(table string) (*sqlx.DB, error, bool) {
-	sess, err := GetSession()
-	if err != nil {
-		log.Println("err get sess:", err)
-		return sess, err, false
-	}
-
-	res, err := sess.Exec("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?;", table)
-	if err != nil {
-		return sess, err, false
-	}
-
-	if i, _ := res.RowsAffected(); i == 0 {
-		sess.Execf(fmt.Sprintf(tableSchema, table))
-	}
-
-	return sess, err, true
+func GetSession() *DB {
+	return db
 }
 
 func Get(table, key string) (string, error) {
 	table = table + "_script"
-	sess, err, ok := checkTable(table)
-	if err != nil || !ok {
-		return "", err
-	}
-
-	temp := map[string]interface{}{}
-	row := sess.QueryRowx(fmt.Sprintf("SELECT v FROM %s WHERE k = ?", table), key)
-	if err := row.MapScan(temp); err != nil {
-		return "", err
-	}
-
-	if res, ok := temp["v"].(string); ok {
-		return res, nil
-	}
-
-	return "", fmt.Errorf("couldn't find '%s' on '%s'", key, table)
+	return db.Get(table, key)
 }
 
 func Set(table, key, data string) (err error) {
 	table = table + "_script"
-	sess, err, ok := checkTable(table)
-	if err != nil || !ok {
+	return db.Set(table, key, data)
+}
+
+type DB struct{ *sqlx.DB }
+
+func NewDB() (*DB, error) {
+	temp, err := sqlx.Open("sqlite3", path.Join(dbPath, "noye.db"))
+	if err != nil {
+		return nil, err
+	}
+
+	return &DB{temp}, nil
+}
+
+func (d *DB) Close() {
+	d.Close()
+}
+
+func (d *DB) Set(table, key, data string) (err error) {
+	if err := d.CheckTable(table, KvSchema); err != nil {
 		log.Println("err check table:", err)
 		return err
 	}
 
-	tx, err := sess.Beginx()
+	tx, err := d.Beginx()
 	if err != nil {
 		log.Println("err begin:", err)
 		return err
@@ -114,4 +97,38 @@ func Set(table, key, data string) (err error) {
 	}
 
 	return
+}
+
+func (d *DB) Get(table, key string) (string, error) {
+	err := d.CheckTable(table, KvSchema)
+	if err != nil {
+		return "", err
+	}
+
+	temp := map[string]interface{}{}
+	row := d.QueryRowx(fmt.Sprintf("SELECT v FROM %s WHERE k = ?", table), key)
+	if err := row.MapScan(temp); err != nil {
+		return "", err
+	}
+
+	if res, ok := temp["v"].(string); ok {
+		return res, nil
+	}
+
+	return "", fmt.Errorf("couldn't find '%s' on '%s'", key, table)
+}
+
+func (d *DB) CheckTable(table, schema string) error {
+	res, err := d.Exec("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?;", table)
+	if err != nil {
+		return err
+	}
+
+	if i, _ := res.RowsAffected(); i == 0 {
+		if _, err := d.Exec(fmt.Sprintf(schema, table)); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
