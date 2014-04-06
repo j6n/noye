@@ -10,7 +10,7 @@ import (
 )
 
 func TestParser(t *testing.T) {
-	user := parseUser("foo!bar@irc.localhost")
+	user := ParseUser("foo!bar@irc.localhost")
 	tests := map[string]noye.IrcMessage{
 		"local join": {
 			Raw:     ":foo!bar@irc.localhost JOIN #foobar",
@@ -52,7 +52,7 @@ func TestParser(t *testing.T) {
 		},
 		"no text": {
 			Raw:     ":irc.localhost 004 museun irc.localhost beware1.6.2 dgikoswx biklmnoprstv",
-			Source:  parseUser("irc.localhost"),
+			Source:  ParseUser("irc.localhost"),
 			Command: "004",
 			Args:    []string{"museun", "irc.localhost", "beware1.6.2", "dgikoswx", "biklmnoprstv"},
 			Text:    "",
@@ -69,7 +69,7 @@ func TestParser(t *testing.T) {
 	Convey("Given a parser", t, func() {
 		for k, v := range tests {
 			Convey(fmt.Sprintf("It should parse '%s' message", k), func() {
-				So(parse(v.Raw), ShouldResemble, v)
+				So(Parse(v.Raw), ShouldResemble, v)
 			})
 		}
 	})
@@ -80,10 +80,10 @@ func TestConvert(t *testing.T) {
 		in  noye.IrcMessage
 		out noye.Message
 	}
-	user := parseUser("foo!bar@irc.localhost")
+	user := ParseUser("foo!bar@irc.localhost")
 	tests := map[string]message{
 		"private": {
-			in: parse(":foo!bar@irc.localhost PRIVMSG hello :hello world"),
+			in: Parse(":foo!bar@irc.localhost PRIVMSG hello :hello world"),
 			out: noye.Message{
 				From:   user,
 				Target: "foo",
@@ -91,7 +91,7 @@ func TestConvert(t *testing.T) {
 			},
 		},
 		"public": {
-			in: parse(":foo!bar@irc.localhost PRIVMSG #hello :hello world"),
+			in: Parse(":foo!bar@irc.localhost PRIVMSG #hello :hello world"),
 			out: noye.Message{
 				From:   user,
 				Target: "#hello",

@@ -111,7 +111,7 @@ func (b *Bot) readLoop() {
 }
 
 func (b *Bot) handle(line string) {
-	msg := parse(line)
+	msg := Parse(line)
 
 	// built-in switch
 	switch msg.Command {

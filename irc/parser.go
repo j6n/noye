@@ -6,13 +6,14 @@ import (
 	"github.com/j6n/noye/noye"
 )
 
-func parse(raw string) noye.IrcMessage {
+// Parse takes a raw message and turns it into an IrcMessage
+func Parse(raw string) noye.IrcMessage {
 	msg := noye.IrcMessage{Raw: raw}
 
 	// :source command [args] :message
 	if raw[0] == ':' {
 		if i := strings.Index(raw, " "); i >= -1 {
-			msg.Source = parseUser(raw[1:i])
+			msg.Source = ParseUser(raw[1:i])
 			raw = raw[i+1 : len(raw)]
 		}
 	}
@@ -32,7 +33,8 @@ func parse(raw string) noye.IrcMessage {
 	return msg
 }
 
-func parseUser(raw string) noye.User {
+// ParseUser takes a raw user string and returns a User
+func ParseUser(raw string) noye.User {
 	if strings.Index(raw, "!") == -1 {
 		return noye.User{Nick: raw}
 	}
