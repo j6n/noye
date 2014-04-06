@@ -31,7 +31,7 @@ func New(conn noye.Conn) *Bot {
 func (b *Bot) Dial(addr, nick, user string) (err error) {
 	log.Infof("Connecting to '%s' with '%s,%s'\n", addr, nick, user)
 	if err = b.conn.Dial(addr); err != nil {
-		log.Errorf("Failed to connect to '%s': %s\n", err)
+		log.Errorf("Failed to connect to '%s': %s\n", addr, err)
 		return
 	}
 
