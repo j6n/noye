@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/j6n/noye/logger"
 	"gopkg.in/yaml.v1"
@@ -63,7 +64,7 @@ func (c *Config) ToMap() map[string]string {
 
 	for k, v := range m {
 		b, _ := json.Marshal(v)
-		out[k] = string(b)
+		out[strings.ToLower(k)] = string(b)
 	}
 
 	return out

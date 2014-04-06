@@ -1,28 +1,24 @@
 package ext
 
-import "github.com/robertkrimen/otto"
+import (
+	"io/ioutil"
 
-const base = `
-noye = _noye_bot;
+	"github.com/robertkrimen/otto"
+)
 
-core = {
-	"manager": _core_manager,
-	"scripts": _core_scripts,
-	"load":    _core_storage_load,
-	"save":    _core_storage_save,
-};
+var base string
 
-share = {
-	"init":        _share_init,
-	"update":      _share_update,
-	"subscribe":   _share_sub,
-	"unsubscribe": _share_unsub,
-};
+// ReloadBase reloads the base.js script
+func (m *Manager) ReloadBase() error {
+	data, err := ioutil.ReadFile("base.js")
+	if err != nil {
+		return err
+	}
 
-http = {
-	"get": _http_get,
-};
-`
+	log.Infof("loaded base.js script\n")
+	base = string(data)
+	return nil
+}
 
 func (m *Manager) setDefaults(script *Script) {
 	getScriptsFor := func() otto.Value {
@@ -68,6 +64,6 @@ func (m *Manager) setDefaults(script *Script) {
 	}
 
 	if _, err := script.context.Run(base); err != nil {
-		log.Errorf("Couldn't run base script: %s\n", err)
+		log.Errorf("Couldn't run internal base.js script: %s\n", err)
 	}
 }

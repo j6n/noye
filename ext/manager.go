@@ -23,10 +23,14 @@ type Manager struct {
 
 // New returns a new Manager
 func New(ctx noye.Bot) *Manager {
-	return &Manager{
+	m := &Manager{
 		scripts: make(map[string]*Script),
 		context: ctx,
 	}
+	if err := m.ReloadBase(); err != nil {
+		log.Fatalf("can't load base.js: %s\n", err)
+	}
+	return m
 }
 
 type wrappedMessage struct {
