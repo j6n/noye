@@ -26,7 +26,7 @@ func (m *MockConn) Dial(addr string) error {
 
 // Close delegates to CloseFn
 func (m *MockConn) Close() {
-	m.Close()
+	m.CloseFn()
 }
 
 // WriteLine delegates to WriteLineFn

@@ -102,6 +102,7 @@ func (b *Bot) readLoop() {
 	for {
 		line, err = b.conn.ReadLine()
 		if err != nil {
+			log.Errorf("ReadLine: %s\n", err)
 			return
 		}
 
