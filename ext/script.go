@@ -19,7 +19,9 @@ type Script struct {
 	callbacks map[string][]scriptFunc
 	cleanup   []scriptFunc
 
-	subs    []int64
+	subs []int64
+	done chan struct{}
+
 	context *otto.Otto
 }
 
@@ -36,7 +38,9 @@ func newScript(name, path, source string) *Script {
 		callbacks: make(map[string][]scriptFunc),
 		cleanup:   make([]scriptFunc, 0),
 
-		subs:    make([]int64, 0),
+		subs: make([]int64, 0),
+		done: make(chan struct{}),
+
 		context: context,
 	}
 }
@@ -117,16 +121,20 @@ func (s *Script) scriptSubInit(init bool) func(otto.FunctionCall) otto.Value {
 			return otto.NullValue()
 		}
 
-		go func() {
+		go func(ch chan string, s *Script) {
+			<-s.done
 			for data := range ch {
 				val, err := s.context.ToValue(data)
 				if err != nil {
 					log.Errorf("(%s) convert val '%s': %s", s.Name(), data, err)
-					val = otto.NullValue()
+					continue
 				}
-				fn.Call(fn, val)
+
+				if _, err = fn.Call(fn, val); err != nil {
+					log.Errorf("(%s) calling fn: %s", s.Name(), err)
+				}
 			}
-		}()
+		}(ch, s)
 
 		s.subs = append(s.subs, id)
 		return val

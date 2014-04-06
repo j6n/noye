@@ -54,7 +54,9 @@ func (q *Queue) Update(key, val string, private bool) {
 		for id := range ids {
 			if ch, ok := q.mapping[id]; ok && ch != nil {
 				temp = append(temp, id)
-				ch <- val
+				go func(ch chan string, val string) {
+					ch <- val
+				}(ch, val)
 			}
 		}
 	}
@@ -69,7 +71,7 @@ func (q *Queue) Subscribe(key string, private bool) (int64, chan string) {
 		return 0, nil
 	}
 
-	id, ch := q.next(), make(chan string, 32)
+	id, ch := q.next(), make(chan string, 2)
 
 	q.mu.Lock()
 	defer q.mu.Unlock()

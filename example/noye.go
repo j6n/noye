@@ -6,8 +6,6 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/j6n/noye/ext"
-
 	"github.com/j6n/noye/config"
 	"github.com/j6n/noye/store"
 
@@ -18,7 +16,9 @@ import (
 var (
 	log  = logger.Get()
 	conf = config.NewConfig()
-	db   *store.DB
+
+	db    *store.DB
+	debug bool
 )
 
 func init() {
@@ -32,13 +32,19 @@ func init() {
 	for k, v := range conf.ToMap() {
 		db.Set("config", k, v)
 	}
+
+	if os.Getenv("NOYE_DEBUG") != "" {
+		debug = true
+	}
 }
 
 func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 
-	store.Debug = true
+	if debug {
+		store.Debug = true
+	}
 
 	bot := irc.New(&irc.Connection{})
 	bot.Manager().LoadScripts("./scripts")
@@ -60,15 +66,6 @@ func main() {
 			return
 		}
 
-		<-bot.Ready()
-		broadcastConfig()
-
 		<-bot.Wait()
-	}
-}
-
-func broadcastConfig() {
-	for key, val := range conf.ToMap() {
-		ext.Broadcast(key, val)
 	}
 }

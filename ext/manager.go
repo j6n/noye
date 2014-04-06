@@ -282,6 +282,8 @@ func (m *Manager) load(source, name, path string) error {
 
 	// if we've gotten this far, the script is valid
 	m.scripts[name] = script
+
+	close(script.done)
 	return nil
 }
 
