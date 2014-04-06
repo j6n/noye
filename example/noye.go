@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"time"
 
 	"github.com/j6n/noye/config"
 	"github.com/j6n/noye/store"
@@ -36,14 +37,31 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 
+	store.Debug = true
+
 	bot := irc.New(&irc.Connection{})
 	bot.Manager().LoadScripts("./scripts")
 
 	reconnect := true
-	go func() { <-quit; reconnect = false; bot.Quit() }()
+	go func() {
+		<-quit
+
+		reconnect = false
+		bot.Quit()
+
+		for _, script := range bot.Manager().Scripts() {
+			script.Cleanup()
+		}
+
+		// give some time to save
+		<-time.After(3 * time.Second)
+		db.Close()
+		// give some time to save
+		<-time.After(3 * time.Second)
+	}()
 
 	for reconnect {
-		if err := bot.Dial(conf.Server, conf.Nick, conf.Nick); err != nil {
+		if err := bot.Dial(conf.Server, conf.Nick, conf.User); err != nil {
 			return
 		}
 

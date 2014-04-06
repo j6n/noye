@@ -17,6 +17,7 @@ type Script struct {
 
 	commands  map[*regexp.Regexp]scriptFunc
 	callbacks map[string][]scriptFunc
+	cleanup   []scriptFunc
 
 	subs    []int64
 	context *otto.Otto
@@ -30,10 +31,13 @@ func newScript(name, path, source string) *Script {
 
 	return &Script{
 		name: name, path: path, source: source,
+
 		commands:  make(map[*regexp.Regexp]scriptFunc),
 		callbacks: make(map[string][]scriptFunc),
-		subs:      make([]int64, 0),
-		context:   context,
+		cleanup:   make([]scriptFunc, 0),
+
+		subs:    make([]int64, 0),
+		context: context,
 	}
 }
 
@@ -49,6 +53,13 @@ func (s *Script) Path() string { return s.path }
 
 // Source returns the scripts source code
 func (s *Script) Source() string { return s.source }
+
+// Cleanup calls all cleanup callbacks
+func (s *Script) Cleanup() {
+	for _, clean := range s.cleanup {
+		clean(otto.NullValue())
+	}
+}
 
 // these are the default methods injected into it
 // set saves a string for a key

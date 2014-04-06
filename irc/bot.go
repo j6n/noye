@@ -15,7 +15,7 @@ type Bot struct {
 	conn    noye.Conn
 	manager *ext.Manager
 
-	stop, ready *Signal
+	stop *Signal
 }
 
 // New takes a noye.Conn and returns a new Bot
@@ -34,7 +34,6 @@ func (b *Bot) Dial(addr, nick, user string) (err error) {
 	}
 
 	b.stop = NewSignal()
-	b.ready = NewSignal()
 
 	b.Send("NICK %s", nick)
 	b.Send("USER %s * 0 :%s", user, "noye in go!")
@@ -75,11 +74,6 @@ func (b *Bot) Wait() <-chan struct{} {
 	return b.stop.Wait()
 }
 
-// Ready returns a channel that'll be closed when the bot is ready
-func (b *Bot) Ready() <-chan struct{} {
-	return b.ready.Wait()
-}
-
 // Close attempts to close the bots connection
 func (b *Bot) Close() {
 	log.Debugf("Closing the bot\n")
@@ -118,8 +112,6 @@ func (b *Bot) handle(line string) {
 	case "PING":
 		b.Send("PONG %s", msg.Text)
 		return
-	case "001":
-		b.ready.Close()
 	case "PRIVMSG":
 		b.manager.Respond(ircToMsg(msg))
 		return

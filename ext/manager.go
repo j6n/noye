@@ -50,7 +50,7 @@ func (w wrappedMessage) Send(f string, a ...interface{}) {
 
 // Respond takes a noye.Message and delegates it to the scripts
 func (m *Manager) Respond(msg noye.Message) {
-	log.Infof("trying a respond for: (%s) <%s> %s\n", msg.Target, msg.From.Nick, msg.Text)
+	log.Infof("respond: (%s) <%s> %s\n", msg.Target, msg.From.Nick, msg.Text)
 	wrap := wrappedMessage{msg, msg.From.Nick != msg.Target, m.context}
 	for _, script := range m.scripts {
 		val, err := script.context.ToValue(wrap)
@@ -123,6 +123,8 @@ func (m *Manager) Reload(name string) error {
 		for _, sub := range script.subs {
 			mq.Unsubscribe(sub)
 		}
+		script.Cleanup()
+
 		delete(m.scripts, name)
 
 		source, err := ioutil.ReadFile(script.Path())
@@ -157,7 +159,7 @@ func (m *Manager) load(source, name, path string) error {
 	// add the log method
 	if err := ctx.Set("log", func(call otto.FunctionCall) otto.Value {
 		// this converts an otto.Value to an interface, so fmt.Sprintf can be used
-		toInterface := func(vals []otto.Value) (out []interface{}) {
+		toInterfaces := func(vals []otto.Value) (out []interface{}) {
 			for _, val := range vals {
 				if res, err := val.Export(); err == nil {
 					out = append(out, res)
@@ -166,20 +168,54 @@ func (m *Manager) load(source, name, path string) error {
 			return
 		}
 
+		toString := func(vals []otto.Value) string {
+			var msg []string
+			for _, val := range vals {
+				if i, err := val.Export(); err == nil {
+					msg = append(msg, fmt.Sprintf("%+v ", i))
+				}
+			}
+
+			return strings.Join(msg, " ")
+		}
+
 		// if we got a string
 		if call.ArgumentList[0].IsString() {
 			// then convert it to a string
 			msg := call.Argument(0).String()
 			// and check to see if its a Printf-style call, or just a Println
 			if len(call.ArgumentList) > 1 {
-				msg = fmt.Sprintf(msg, toInterface(call.ArgumentList[1:])...)
+				msg = fmt.Sprintf(msg, toInterfaces(call.ArgumentList[1:])...)
 			}
 			log.Infof("(%s) %s\n", name, msg)
 			return otto.TrueValue()
 		}
-		return otto.FalseValue()
+
+		log.Infof("(%s) %s\n", name, toString(call.ArgumentList))
+		return otto.TrueValue()
+
 	}); err != nil {
 		log.Errorf("(%s) setting log: %s", name, err)
+		return err
+	}
+
+	// add the claenup method, this gets called when we're closing
+	if err := ctx.Set("cleanup", func(call otto.FunctionCall) otto.Value {
+		if len(call.ArgumentList) == 0 || !call.ArgumentList[0].IsFunction() {
+			return otto.FalseValue()
+		}
+
+		fn := call.ArgumentList[0]
+		wrap := func(env otto.Value, res ...otto.Value) {
+			if _, err := fn.Call(fn); err != nil {
+				log.Errorf("(%s: %s) calling cleanup: %s\n", name, path, err)
+			}
+		}
+
+		script.cleanup = append(script.cleanup, wrap)
+		return otto.TrueValue()
+	}); err != nil {
+		log.Errorf("(%s) setting up cleanup: %s", name, err)
 		return err
 	}
 

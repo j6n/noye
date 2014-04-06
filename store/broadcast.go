@@ -12,7 +12,7 @@ type Broadcast struct {
 // then it'll send the data over the channel
 func (b *Broadcast) Init(table, key string, private bool) (int64, chan string) {
 	id, ch := b.Queue.Subscribe(key, private)
-	debug("%d subscribed to '%s' (%t)\n", id, key, private)
+	debug("'%d' subscribed to '%s' (%t)\n", id, key, private)
 	data, err := b.DB.Get(ConfigTable, key)
 	if err != nil {
 		debug("'%d' couldn't get '%s' data for '%s' (%t): %s\n", id, ConfigTable, key, private, err)

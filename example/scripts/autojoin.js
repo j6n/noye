@@ -1,7 +1,8 @@
 var autojoin = [];
 
 share.init("channels", function(data) {
-  autojoin = JSON.parse(data);
+  autojoin = _.union(autojoin, JSON.parse(data));
+  log(autojoin);
 });
 
 respond("!autojoin (?P<method>add|remove) (?P<chan>#.*?)$", function(msg, res) {
@@ -29,7 +30,12 @@ respond("!autojoin (?P<method>add|remove) (?P<chan>#.*?)$", function(msg, res) {
 });
 
 listen("001", function(msg) {
+  log("got a 001: %s", autojoin)
   for (var i in autojoin) {
     noye.bot.Join(autojoin[i]);
   }
 });
+
+cleanup(function(){
+  core.save("autojoin", JSON.stringify(autojoin));
+})

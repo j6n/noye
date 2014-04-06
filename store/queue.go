@@ -49,17 +49,17 @@ func (q *Queue) Update(key, val string, private bool) {
 	q.mu.RLock()
 	defer q.mu.RUnlock()
 
-	debug("sending '%s' to:", val)
+	var temp []int64
 	if ids, ok := q.clients[key]; ok {
 		for id := range ids {
 			if ch, ok := q.mapping[id]; ok && ch != nil {
-				debug(" %d", id)
+				temp = append(temp, id)
 				ch <- val
 			}
 		}
 	}
 
-	debug("\n", val)
+	debug("sending '%s' to: %v\n", val, temp)
 }
 
 func (q *Queue) Subscribe(key string, private bool) (int64, chan string) {
