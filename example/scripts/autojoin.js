@@ -1,18 +1,19 @@
 var autojoin = [];
-var append = function(data) { autojoin = _.union(autojoin, JSON.parse(data)) }
 
-share.init("channels", append);
-share.init("autojoin", append);
+share.init("channels", function(data) {
+  autojoin = _.union(autojoin, JSON.parse(data));
+  log(autojoin);
+});
 
 respond("!autojoin (?P<method>add|remove) (?P<chan>#.*?)$", function(msg, res) {
   if (!_.contains(noye.auth, msg.From.Nick)) {
-    msg.Reply("you're not allowed to do that")
+    msg.Reply("you're not allowed to do that");
     return
   }
 
   if (res.method && res.chan) {
     if (res.method == "add" && !_.contains(autojoin, res.chan)) {
-      autojoin.push(res.chan)
+      autojoin.push(res.method)
       msg.Reply("added '%s' to my autojoin", res.chan)
       noye.bot.Join(res.chan)
     }
@@ -26,15 +27,15 @@ respond("!autojoin (?P<method>add|remove) (?P<chan>#.*?)$", function(msg, res) {
   }
 
   msg.Reply("usage: !autojoin add|del #channel")
-})
+});
 
 listen("001", function(msg) {
   log("got a 001: %s", autojoin)
   for (var i in autojoin) {
-    noye.bot.Join(autojoin[i])
+    noye.bot.Join(autojoin[i]);
   }
-})
+});
 
 cleanup(function(){
-  core.save("channels", JSON.stringify(autojoin))
+  core.save("autojoin", JSON.stringify(autojoin));
 })
