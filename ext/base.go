@@ -53,7 +53,10 @@ func (m *Manager) setDefaults(script *Script) {
 		"_share_unsub":  script.scriptUnsub,
 		"_share_update": script.scriptUpdate,
 
-		"_http_get": script.scriptHttpget,
+		"_http_get":     script.scriptHttpget,
+		"_http_follow":  script.scriptHttpfollow,
+		"_http_shorten": script.scriptHttpshorten,
+		"_html_new":     script.scriptHTMLNew,
 	}
 
 	for k, v := range binding {

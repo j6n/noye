@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/j6n/noye/http"
+	"github.com/j6n/noye/etc/html"
+
+	"github.com/j6n/noye/etc/http"
 	"github.com/j6n/noye/store"
 	"github.com/robertkrimen/otto"
 )
@@ -185,9 +187,9 @@ func (s *Script) scriptHttpget(call otto.FunctionCall) otto.Value {
 		return otto.FalseValue()
 	}
 
-	var headers map[string]string
+	headers := make(map[string]string)
 	if len(call.ArgumentList) > 2 {
-		obj, err := call.ArgumentList[3].Export()
+		obj, err := call.ArgumentList[2].Export()
 		if err != nil {
 			otto.FalseValue()
 		}
@@ -201,11 +203,63 @@ func (s *Script) scriptHttpget(call otto.FunctionCall) otto.Value {
 
 	url, fn := call.ArgumentList[0].String(), call.ArgumentList[1]
 	go func() {
-		status, res := http.Get(url, headers)
+		res, status := http.Get(url, headers)
 		sval, _ := s.context.ToValue(status)
 		rval, _ := s.context.ToValue(res)
-
 		fn.Call(fn, sval, rval)
 	}()
 	return otto.TrueValue()
+}
+
+func (s *Script) scriptHttpfollow(call otto.FunctionCall) otto.Value {
+	if len(call.ArgumentList) < 2 || !call.Argument(0).IsString() || !call.Argument(1).IsFunction() {
+		return otto.FalseValue()
+	}
+
+	url, fn := call.Argument(0).String(), call.Argument(1)
+	go func() {
+		res, status := http.Follow(url)
+		sval, _ := s.context.ToValue(status)
+		rval, _ := s.context.ToValue(res)
+		fn.Call(fn, sval, rval)
+	}()
+
+	return otto.TrueValue()
+}
+
+func (s *Script) scriptHttpshorten(call otto.FunctionCall) otto.Value {
+	if len(call.ArgumentList) < 2 || !call.Argument(0).IsString() || !call.Argument(1).IsFunction() {
+		return otto.FalseValue()
+	}
+
+	url, fn := call.Argument(0).String(), call.Argument(1)
+	go func() {
+		res, status := http.Shorten(url)
+		sval, _ := s.context.ToValue(status)
+		rval, _ := s.context.ToValue(res)
+		fn.Call(fn, sval, rval)
+	}()
+
+	return otto.TrueValue()
+}
+
+func (s *Script) scriptHTMLNew(call otto.FunctionCall) otto.Value {
+	if len(call.ArgumentList) < 1 || !call.ArgumentList[0].IsString() {
+		return otto.NullValue()
+	}
+
+	url := call.Argument(0).String()
+	parser, err := html.NewParser(url, s.context)
+	if err != nil {
+		log.Errorf("(%s) can't get '%s': %s\n", s.Name(), url, err)
+		return otto.NullValue()
+	}
+
+	val, err := s.context.ToValue(parser)
+	if err != nil {
+		log.Errorf("(%s) can't convert parser: %s\n", s.Name(), err)
+		return otto.NullValue()
+	}
+
+	return val
 }
