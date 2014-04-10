@@ -1,15 +1,16 @@
 package noye
 
-// Manager represents a set of managed extensions
+// Manager represents a set of managed scripts
 type Manager interface {
-	Respond(Message)
-	Listen(IrcMessage)
+	Respond(msg Message)
+	Listen(msg IrcMessage)
 
 	LoadScripts(dir string)
-	Load(string) error
+	LoadFile(path string) error
 
-	Reload(string) error
+	Reload(script string) error
 	ReloadBase() error
 
-	Scripts() []Script
+	Unload(name string) error
+	UnloadAll()
 }
