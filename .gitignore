@@ -10,6 +10,7 @@ _test
 # Architecture specific extensions/prefixes
 *.[568vq]
 [568vq].out
+*.exe
 
 *.cgo1.go
 *.cgo2.c
@@ -19,6 +20,6 @@ _cgo_export.*
 
 _testmain.go
 
-*.exe
+# Generated things
 *.db
 *.yaml
