@@ -41,7 +41,8 @@ func (m *Manager) setDefaults(s *Script) (err error) {
 		"_http_get":     httpGetMethod(s),
 		"_http_follow":  httpFollowMethod(s),
 		"_http_shorten": shortenMethod(s),
-		"_html_new":     newParserMethod(s),
+
+		"_html_new": newParserMethod(s),
 	}
 
 	for k, v := range binding {
@@ -209,11 +210,14 @@ func httpGetMethod(s *Script) func(otto.FunctionCall) otto.Value {
 		}
 
 		res, status := lib.Get(call.Argument(0).String(), headers)
+		log.Debugf("get: %d, %s", status, call.Argument(0).String())
+
 		sval, _ := s.context.ToValue(status)
 		rval, _ := s.context.ToValue(res)
 		data, _ := s.context.ToValue(map[string]interface{}{"status": sval, "body": rval})
 		return data
 	}
+
 	return fn
 }
 
@@ -225,25 +229,29 @@ func httpFollowMethod(s *Script) func(otto.FunctionCall) otto.Value {
 		}
 
 		res, status := lib.Follow(call.Argument(0).String())
+		log.Debugf("follow: %d, %s: %s", status, call.Argument(0).String(), res)
+
 		sval, _ := s.context.ToValue(status)
 		rval, _ := s.context.ToValue(res)
 		data, _ := s.context.ToValue(map[string]interface{}{"status": sval, "body": rval})
 		return data
 	}
+
 	return fn
 }
 
 // returns a goo.gl url for a string
 func shortenMethod(s *Script) func(otto.FunctionCall) otto.Value {
 	fn := func(call otto.FunctionCall) otto.Value {
-		if len(call.ArgumentList) < 2 || !call.Argument(0).IsString() {
+		if len(call.ArgumentList) < 1 || !call.Argument(0).IsString() {
 			return otto.NullValue()
 		}
 
 		res, status := lib.Shorten(call.Argument(0).String())
+		log.Debugf("shorten: %d, %s: %s", status, call.Argument(0).String(), res)
+
 		sval, _ := s.context.ToValue(status)
 		rval, _ := s.context.ToValue(res)
-
 		data, _ := s.context.ToValue(map[string]interface{}{"status": sval, "body": rval})
 		return data
 	}

@@ -33,7 +33,10 @@ func init() {
 	}
 
 	if os.Getenv("NOYE_DEBUG") != "" {
+		log.SetMinMaxSeverity(logger.TRACE, logger.PANIC)
 		debug = true
+	} else {
+		log.SetMinMaxSeverity(logger.INFO, logger.PANIC)
 	}
 }
 
@@ -63,7 +66,6 @@ func main() {
 		}
 
 		<-bot.Wait()
-		log.Println("waiting 5 seconds to reconnect")
 		<-time.After(5 * time.Second)
 	}
 }

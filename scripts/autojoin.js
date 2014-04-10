@@ -1,12 +1,8 @@
 var autojoin = []
 
 share.init("channels", function(data) {
-  log("got channels data: %v", data)
   var init = core.load("autojoin")
-  if (init) {
-    log("got init: %v", init)
-    autojoin = JSON.parse(init)  
-  }
+  if (init) autojoin = JSON.parse(init)
   autojoin = _.union(autojoin, JSON.parse(data))
 })
 
@@ -35,7 +31,6 @@ respond("!autojoin (?P<method>add|remove) (?P<chan>#.*?)$", function(msg, res) {
 })
 
 listen("001", function(msg) {
-  log("got a 001: %v", autojoin)
   for (var i in autojoin) {
     noye.bot.Join(autojoin[i])
   }

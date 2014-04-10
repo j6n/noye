@@ -36,7 +36,9 @@ func New(ctx noye.Bot) (m *Manager) {
 
 // Respond takes a noye.Message and delegates it to the scripts
 func (m *Manager) Respond(msg noye.Message) {
-	val, err := m.vm.ToValue(m.wrapMessage(msg))
+	wrapped := m.wrapMessage(msg)
+	log.Debugf("(%s:%t) <%s> %s", wrapped.Target, wrapped.Public, wrapped.From, wrapped.Text)
+	val, err := m.vm.ToValue(wrapped)
 	if err != nil {
 		log.Errorf("unable to convert wrapped message: %s", err)
 		return

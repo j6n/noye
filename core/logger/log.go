@@ -15,6 +15,19 @@ type logger struct {
 	*factorlog.FactorLog
 }
 
+const (
+	NONE     = factorlog.NONE
+	TRACE    = factorlog.TRACE
+	DEBUG    = factorlog.DEBUG
+	INFO     = factorlog.INFO
+	WARN     = factorlog.WARN
+	ERROR    = factorlog.ERROR
+	CRITICAL = factorlog.CRITICAL
+	STACK    = factorlog.STACK
+	FATAL    = factorlog.FATAL
+	PANIC    = factorlog.PANIC
+)
+
 // New returns a new logger
 func New() *logger {
 	return &logger{factorlog.New(os.Stdout, NewScriptFormatter())}
