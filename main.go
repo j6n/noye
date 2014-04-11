@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"os/signal"
 	"runtime"
@@ -30,6 +31,13 @@ func init() {
 
 	for k, v := range conf.ToMap() {
 		db.Set("config", k, v)
+	}
+
+	var qpass, quser string
+	if qpass, quser = os.Getenv("NOYE_PASS"), os.Getenv("NOYE_USER"); qpass != "" && quser != "" {
+		m := map[string]string{"user": quser, "pass": qpass}
+		data, _ := json.Marshal(m)
+		db.Set("config", "quakenet", string(data))
 	}
 
 	if os.Getenv("NOYE_DEBUG") != "" {

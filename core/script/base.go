@@ -2,6 +2,7 @@ package script
 
 import (
 	"io/ioutil"
+	"time"
 
 	"github.com/j6n/noye/core/lib"
 	"github.com/j6n/noye/core/logger"
@@ -43,6 +44,8 @@ func (m *Manager) setDefaults(s *Script) (err error) {
 		"_http_shorten": shortenMethod(s),
 
 		"_html_new": newParserMethod(s),
+
+		"_wait": waitMethod(s),
 	}
 
 	for k, v := range binding {
@@ -280,6 +283,24 @@ func newParserMethod(s *Script) func(otto.FunctionCall) otto.Value {
 		}
 
 		return val
+	}
+
+	return fn
+}
+
+func waitMethod(s *Script) func(otto.FunctionCall) otto.Value {
+	fn := func(call otto.FunctionCall) otto.Value {
+		if len(call.ArgumentList) < 1 || !call.Argument(0).IsNumber() {
+			return otto.FalseValue()
+		}
+
+		n, err := call.Argument(0).ToInteger()
+		if err != nil {
+			return otto.FalseValue()
+		}
+
+		<-time.After(time.Duration(n) * time.Second)
+		return otto.TrueValue()
 	}
 
 	return fn

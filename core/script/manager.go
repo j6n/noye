@@ -128,6 +128,14 @@ func (m *Manager) UnloadAll() {
 	}
 }
 
+func (m *Manager) Scripts() map[string]noye.Script {
+	out := make(map[string]noye.Script)
+	for k, v := range m.scripts {
+		out[k] = v
+	}
+	return out
+}
+
 func (m *Manager) unload(s *Script) {
 	for _, sub := range s.subs {
 		mq.Unsubscribe(sub)

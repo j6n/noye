@@ -1,5 +1,11 @@
 var autojoin = []
+var quakenet = {}
+
 var save = function() { core.save("autojoin", JSON.stringify(autojoin)) }
+
+share.init("quakenet", function(data) {
+  quakenet = JSON.parse(data)
+})
 
 share.init("channels", function(data) {
   autojoin = _.union(autojoin, JSON.parse(data))
@@ -33,6 +39,14 @@ respond("!autojoin (?P<method>add|remove) (?P<chan>#.*?)$", function(msg, res) {
 })
 
 listen("001", function(msg) {
+  if (qnetRegex.test(msg.Source.Nick)) {
+    if (quakenet.user && quakenet.pass) {
+      noye.bot.Send("PRIVMSG %s :AUTH %s %s", "Q@CServe.quakenet.org", quakenet.user, quakenet.pass)
+      noye.bot.Send("MODE %s +x", msg.Args[0])
+      core.wait(3)
+    }
+  }
+
   var init = core.load("autojoin")
   if (init) autojoin = _.union(autojoin, JSON.parse(init))
 
@@ -44,3 +58,5 @@ listen("001", function(msg) {
 cleanup(function() {
   save()
 })
+
+var qnetRegex = new RegExp("quakenet\\.org$")

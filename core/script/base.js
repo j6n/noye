@@ -9,6 +9,8 @@ core = {
 
   "load": _core_storage_load,
   "save": _core_storage_save,
+
+  "wait": _wait,
 };
 
 share = {

@@ -13,4 +13,6 @@ type Manager interface {
 
 	Unload(name string) error
 	UnloadAll()
+
+	Scripts() map[string]Script
 }
