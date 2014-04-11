@@ -1,9 +1,9 @@
 var autojoin = []
+var save = function() { core.save("autojoin", JSON.stringify(autojoin)) }
 
 share.init("channels", function(data) {
-  var init = core.load("autojoin")
-  if (init) autojoin = JSON.parse(init)
   autojoin = _.union(autojoin, JSON.parse(data))
+  save()
 })
 
 respond("!autojoin (?P<method>add|remove) (?P<chan>#.*?)$", function(msg, res) {
@@ -24,6 +24,8 @@ respond("!autojoin (?P<method>add|remove) (?P<chan>#.*?)$", function(msg, res) {
       msg.Reply("removed '%s' from my autojoin", res.chan)
       noye.bot.Part(res.chan)
     }
+    
+    save()
     return
   }
 
@@ -31,11 +33,14 @@ respond("!autojoin (?P<method>add|remove) (?P<chan>#.*?)$", function(msg, res) {
 })
 
 listen("001", function(msg) {
+  var init = core.load("autojoin")
+  if (init) autojoin = _.union(autojoin, JSON.parse(init))
+
   for (var i in autojoin) {
     noye.bot.Join(autojoin[i])
   }
 })
 
-cleanup(function(){
-  core.save("autojoin", JSON.stringify(autojoin))
+cleanup(function() {
+  save()
 })
